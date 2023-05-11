@@ -11,6 +11,16 @@ beforeAll(() => {
   process.env['GITHUB_REPOSITORY'] = 'decyjphr-org/admin'
   process.env['GITHUB_ACTOR'] = 'decyjphr'
   process.env['INPUT_ISSUE_NAME'] = 'repoinputs'
+  process.env['GITHUB_EVENT_PATH'] = path.join(
+    __dirname,
+    'fixtures',
+    'issue.json'
+  )
+  process.env['GITHUB_EVENT_NAME'] = 'issue'
+  process.env['GITHUB_SHA'] = 'SHA'
+  process.env['GITHUB_REF'] = 'main'
+  process.env['GITHUB_WORKFLOW'] = 'test'
+  process.env['GITHUB_ACTION'] = 'labeled'
 })
 
 // shows how the runner will run a javascript action with env / stdout protocol

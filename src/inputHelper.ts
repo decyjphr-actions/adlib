@@ -28,13 +28,15 @@ export function getInputs(): RewireInputs | undefined {
   //const pat_token: string = core.getInput(InputVariables.Token, {
   //  required: true
   //})
+  core.debug(`xxx ${JSON.stringify(process.env.GITHUB_EVENT_PATH)}`)
+  core.debug(`context is ${JSON.stringify(github.context)}`)
 
   if (github.context.eventName === 'issue') {
     const issuePayload = github.context.payload as IssuesEvent
     core.info(`The Issue Payload is: ${issuePayload}`)
+    const rewireInputs: RewireInputs = new RewireInputs(issuePayload, adoInputs)
+    return rewireInputs
   }
 
-  const issuePayload = github.context.payload as IssuesEvent
-  const rewireInputs: RewireInputs = new RewireInputs(issuePayload, adoInputs)
-  return rewireInputs
+  return undefined
 }

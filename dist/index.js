@@ -55,13 +55,14 @@ function getInputs() {
     //const pat_token: string = core.getInput(InputVariables.Token, {
     //  required: true
     //})
+    core.debug(`context is ${JSON.stringify(github.context)}`);
     if (github.context.eventName === 'issue') {
         const issuePayload = github.context.payload;
         core.info(`The Issue Payload is: ${issuePayload}`);
+        const rewireInputs = new types_1.RewireInputs(issuePayload, adoInputs);
+        return rewireInputs;
     }
-    const issuePayload = github.context.payload;
-    const rewireInputs = new types_1.RewireInputs(issuePayload, adoInputs);
-    return rewireInputs;
+    return undefined;
 }
 exports.getInputs = getInputs;
 
