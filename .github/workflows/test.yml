@@ -22,3 +22,5 @@ jobs:
       - uses: ./
         with:
           milliseconds: 1000
+          ado_pat: ${{ secrets.ADO_PAT }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
