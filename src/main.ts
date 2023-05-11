@@ -1,16 +1,13 @@
 import * as core from '@actions/core'
-import {wait} from './wait'
+import * as inputHelper from './inputHelper'
+import {RewireInputs} from './types'
 
 async function run(): Promise<void> {
   try {
-    const ms: string = core.getInput('milliseconds')
-    core.debug(`Waiting ${ms} milliseconds ...`) // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
-
-    core.debug(new Date().toTimeString())
-    await wait(parseInt(ms, 10))
-    core.debug(new Date().toTimeString())
-
-    core.setOutput('time', new Date().toTimeString())
+    const inputs: RewireInputs | undefined = inputHelper.getInputs()
+    core.debug(`Inputs ${JSON.stringify(inputs)}`)
+    core.debug(`Inputs is Rewire Inputs ${inputs instanceof RewireInputs}`)
+    core.debug('Done with main')
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }
