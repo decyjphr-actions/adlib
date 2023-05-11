@@ -2,10 +2,18 @@ name: 'Your name here'
 description: 'Provide a description here'
 author: 'Your name or organization here'
 inputs:
-  milliseconds: # change this
+  ado_pat:
+    description: 'The Personal Access token used to call the API \nThis action required org admin previleges'
     required: true
-    description: 'input description here'
-    default: 'default value if applicable'
+  github_token:
+    description: 'The Personal Access token used to call the API \nThis action required org admin previleges'
+    required: true
+  issue_body_json:
+    description: 'The JSON from the parsed issue body'
+    required: true  
+outputs:
+  status: # output will be available to future steps
+    description: 'The Status of a particular request'
 runs:
   using: 'node16'
   main: 'dist/index.js'
