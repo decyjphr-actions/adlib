@@ -55,6 +55,7 @@ function getInputs() {
     //const pat_token: string = core.getInput(InputVariables.Token, {
     //  required: true
     //})
+    core.debug(`xxx ${JSON.stringify(process.env.GITHUB_EVENT_PATH)}`);
     core.debug(`context is ${JSON.stringify(github.context)}`);
     if (github.context.eventName === 'issue') {
         const issuePayload = github.context.payload;
