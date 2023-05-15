@@ -14,10 +14,8 @@ jobs:
           npm run all
   test:
     name: Test Action
-    if: contains(github.event.issue.labels.*.name, 'issueops')
-
+    if: contains(github.event.issue.labels.*.name, 'issueops-share-ado')
     runs-on: ubuntu-20.04
-    
     steps:          
     - id: parse
       name: Run Issue form parser
@@ -45,5 +43,5 @@ jobs:
       with:
         ado_pat: ${{ secrets.ADO_PAT }}
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        issue_body_json: ${{ toJson(github.event.issue.body) }}
+        issue_body_json: ${{ toJson(steps.parse.outputs.payload) }}
     
