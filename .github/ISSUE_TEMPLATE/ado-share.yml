@@ -1,0 +1,36 @@
+name: Share the Motorola Standard ADO service connection with a project
+description: This is an issue ops based interface to share ADO Service connection using the ADO2GH tool.
+title: "Share Motorola Standard ADO service connection with a project"
+labels: ["issueops-share-ado"]
+body:
+- type: markdown
+  attributes:
+    value: "## Share the Motorola standard ADO<>Github App-based Service Connection with your project"
+- type: markdown
+  attributes:
+    value: |
+      This is an issue ops based interface to share ADO Service connection using the ADO2GH tool. The connection that is shared and the source project cannot be specified. It is the DLT standard connection.     
+      <details>
+        <summary>Additional Info</summary>
+        - The connection will appear in the destination project with the name of `<original_connection_name>-<destination-project>`
+        <br>- Once you submit this issue a designated team member would have to authorize this request
+        <br>- Once it is complete, you will see an issue comment at the bottom indicating the status
+
+      </details>
+- type: input
+  id: destination-project
+  attributes:
+    label: ">>Destination_Project<<"
+    description: "Enter the Project where the connection must be shared."
+  validations:
+    required: true
+- type: input
+  id: build-definition
+  attributes:
+    label: ">>Build_Definition<<"
+    description: "Enter the Build Definition Number of the ADO Pipeline that needs to be rewired to use the share connection"
+  validations:
+    required: true
+    
+
+      
