@@ -1,0 +1,49 @@
+name: Test Action
+
+on:
+  issues:
+    types: [labeled]    
+jobs:
+  build: # make sure build/ci work properly
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: |
+          npm install
+      - run: |
+          npm run all
+  test:
+    name: Test Action
+    if: contains(github.event.issue.labels.*.name, 'issueops')
+
+    runs-on: ubuntu-20.04
+    
+    steps:          
+    - id: parse
+      name: Run Issue form parser
+      uses: peter-murray/issue-forms-body-parser@v2.0.0
+      with:
+        issue_id: ${{ github.event.issue.number }}
+        separator: '###'
+        label_marker_start: '>>'
+        label_marker_end: '<<' 
+           
+    - id: issueinput
+      name: Parse Issue Input to get the type
+      uses: actions/github-script@v5
+      env:
+        payload: ${{ steps.parse.outputs.payload }}
+      with:
+        script: |
+          const {payload} = process.env
+          console.log(JSON.stringify(payload,null,2))
+          const input = JSON.parse(payload)
+          core.setOutput('issue_name', input.issue_name);
+
+    - uses: actions/checkout@v3
+    - uses: ./
+      with:
+        ado_pat: ${{ secrets.ADO_PAT }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        issue_body_json: ${{ toJson(github.event.issue.body) }}
+    
