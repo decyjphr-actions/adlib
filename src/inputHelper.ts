@@ -31,7 +31,7 @@ export function getInputs(): RewireInputs | undefined {
   core.debug(`xxx ${JSON.stringify(process.env.GITHUB_EVENT_PATH)}`)
   core.debug(`context is ${JSON.stringify(github.context)}`)
 
-  if (github.context.eventName === 'issue') {
+  if (github.context.eventName === 'issues') {
     const issuePayload = github.context.payload as IssuesEvent
     core.info(`The Issue Payload is: ${issuePayload}`)
     const rewireInputs: RewireInputs = new RewireInputs(issuePayload, adoInputs)

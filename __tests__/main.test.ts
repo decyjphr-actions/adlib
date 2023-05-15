@@ -16,7 +16,7 @@ beforeAll(() => {
     'fixtures',
     'issue.json'
   )
-  process.env['GITHUB_EVENT_NAME'] = 'issue'
+  process.env['GITHUB_EVENT_NAME'] = 'issues'
   process.env['GITHUB_SHA'] = 'SHA'
   process.env['GITHUB_REF'] = 'main'
   process.env['GITHUB_WORKFLOW'] = 'test'
