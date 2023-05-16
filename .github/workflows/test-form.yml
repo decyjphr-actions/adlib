@@ -3,6 +3,7 @@ name: Test Action
 on:
   issues:
     types: [labeled]    
+  issue_comment:
 jobs:
   test:
     name: Test Action
