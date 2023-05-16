@@ -12,7 +12,7 @@
                 "run",
                 "test"
             ],
-            "name": "Launch Program",
+            "name": "Test",
             "skipFiles": [
                 "<node_internals>/**"
             ],

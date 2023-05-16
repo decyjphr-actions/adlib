@@ -2,6 +2,9 @@ name: 'Your name here'
 description: 'Provide a description here'
 author: 'Your name or organization here'
 inputs:
+  command:
+    description: 'The Command to execute\nValid commands are: \n- ack\n- secure\n- rewire\n- comment'
+    required: true
   ado_pat:
     description: 'The Personal Access token used to call the API \nThis action required org admin previleges'
     required: true

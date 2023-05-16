@@ -34,10 +34,15 @@ exports.getInputs = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
 const types_1 = __nccwpck_require__(8164);
+const issueCommand_1 = __nccwpck_require__(9533);
 /**
  * Helper to get all the inputs for the action
  */
 function getInputs() {
+    const commandstr = core.getInput(types_1.InputVariables.Command, {
+        required: true
+    });
+    const command = types_1.Commands[commandstr];
     const adoToken = core.getInput(types_1.InputVariables.AdoToken, {
         required: true
     });
@@ -52,20 +57,111 @@ function getInputs() {
     if (!actor) {
         throw new Error('actor is undefined');
     }
-    //const pat_token: string = core.getInput(InputVariables.Token, {
-    //  required: true
-    //})
-    core.debug(`xxx ${JSON.stringify(process.env.GITHUB_EVENT_PATH)}`);
-    core.debug(`context is ${JSON.stringify(github.context)}`);
+    const githubToken = core.getInput(types_1.InputVariables.GitHubToken, {
+        required: true
+    });
+    const octokit = github.getOctokit(githubToken);
+    //core.debug(`context is ${JSON.stringify(github.context)}`)
     if (github.context.eventName === 'issues') {
         const issuePayload = github.context.payload;
-        core.info(`The Issue Payload is: ${issuePayload}`);
-        const rewireInputs = new types_1.RewireInputs(issuePayload, adoInputs);
+        core.info(`The Issue Payload is: ${JSON.stringify(issuePayload)}`);
+        const rewireInputs = new issueCommand_1.IssueCommand(octokit, command, issuePayload, adoInputs);
         return rewireInputs;
     }
     return undefined;
 }
 exports.getInputs = getInputs;
+
+
+/***/ }),
+
+/***/ 9533:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.IssueCommand = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+class IssueCommand {
+    constructor(_octokit, _command, _issue, _adoInputs) {
+        this.payload = _issue;
+        this.adoInputs = _adoInputs;
+        this.command = _command;
+        this.octokitClient = _octokit;
+    }
+    execute() {
+        const _commandName = this.command;
+        if (typeof this[_commandName] === 'function') {
+            const command = this[_commandName];
+            command.call(this);
+        }
+    }
+    removeLabels(labels) {
+        throw new Error(`Method removeLabels(${labels}) not implemented.`);
+    }
+    addLabels(labels) {
+        throw new Error(`Method addLabels(${labels}) not implemented.`);
+    }
+    ack() {
+        return __awaiter(this, void 0, void 0, function* () {
+            core.debug(`ack called for ${JSON.stringify(this.payload)}`);
+            const params = {
+                owner: this.payload.repository.owner.login,
+                repo: this.payload.repository.name,
+                issue_number: this.payload.issue.number,
+                content: 'eyes'
+            };
+            try {
+                yield this.octokitClient.rest.reactions.createForIssue(params);
+            }
+            catch (error) {
+                const e = error;
+                if (e.status === 404) {
+                    const message404 = `No Issue found for ${JSON.stringify(params)}`;
+                    core.debug(message404);
+                    throw new Error(message404);
+                }
+                const message = `${e} setting Ack for issue with ${JSON.stringify(params)}`;
+                core.debug(message);
+                throw new Error(message);
+            }
+        });
+    }
+}
+exports.IssueCommand = IssueCommand;
 
 
 /***/ }),
@@ -110,13 +206,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const inputHelper = __importStar(__nccwpck_require__(6559));
-const types_1 = __nccwpck_require__(8164);
+const issueCommand_1 = __nccwpck_require__(9533);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const inputs = inputHelper.getInputs();
             core.debug(`Inputs ${JSON.stringify(inputs)}`);
-            core.debug(`Inputs is Rewire Inputs ${inputs instanceof types_1.RewireInputs}`);
+            core.debug(`Inputs is Rewire Inputs ${inputs instanceof issueCommand_1.IssueCommand}`);
+            if (inputs instanceof issueCommand_1.IssueCommand) {
+                const rewireInputs = inputs;
+                rewireInputs.execute();
+            }
             core.debug('Done with main');
         }
         catch (error) {
@@ -135,8 +235,9 @@ run();
 
 "use strict";
 
+/* eslint-disable no-shadow */
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.RewireInputs = exports.InputVariables = void 0;
+exports.Commands = exports.InputVariables = void 0;
 var InputVariables;
 (function (InputVariables) {
     InputVariables["IssueBody"] = "issue_body_json";
@@ -144,14 +245,15 @@ var InputVariables;
     InputVariables["AdoToken"] = "ado_pat";
     InputVariables["Requestor"] = "Requestor";
     InputVariables["IssueName"] = "issue_name";
+    InputVariables["Command"] = "command";
 })(InputVariables = exports.InputVariables || (exports.InputVariables = {}));
-class RewireInputs {
-    constructor(_issue, _adoInputs) {
-        this.payload = _issue;
-        this.adoInputs = _adoInputs;
-    }
-}
-exports.RewireInputs = RewireInputs;
+var Commands;
+(function (Commands) {
+    Commands["ack"] = "ack";
+    Commands["secure"] = "secure";
+    Commands["rewire"] = "rewire";
+    Commands["comment"] = "comment";
+})(Commands = exports.Commands || (exports.Commands = {}));
 
 
 /***/ }),

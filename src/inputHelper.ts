@@ -3,12 +3,18 @@ import * as github from '@actions/github'
 // eslint-disable-next-line import/no-unresolved
 import {IssuesEvent} from '@octokit/webhooks-definitions/schema'
 
-import {AdoInputs, InputVariables, RewireInputs} from './types'
+import {AdoInputs, Commands, InputVariables} from './types'
+import {IssueCommand} from './issueCommand'
 
 /**
  * Helper to get all the inputs for the action
  */
-export function getInputs(): RewireInputs | undefined {
+export function getInputs(): IssueCommand | undefined {
+  const commandstr: string = core.getInput(InputVariables.Command, {
+    required: true
+  })
+  const command: Commands = Commands[commandstr as keyof typeof Commands]
+
   const adoToken: string = core.getInput(InputVariables.AdoToken, {
     required: true
   })
@@ -25,16 +31,23 @@ export function getInputs(): RewireInputs | undefined {
     throw new Error('actor is undefined')
   }
 
-  //const pat_token: string = core.getInput(InputVariables.Token, {
-  //  required: true
-  //})
-  core.debug(`xxx ${JSON.stringify(process.env.GITHUB_EVENT_PATH)}`)
-  core.debug(`context is ${JSON.stringify(github.context)}`)
+  const githubToken: string = core.getInput(InputVariables.GitHubToken, {
+    required: true
+  })
+
+  const octokit = github.getOctokit(githubToken)
+
+  //core.debug(`context is ${JSON.stringify(github.context)}`)
 
   if (github.context.eventName === 'issues') {
     const issuePayload = github.context.payload as IssuesEvent
-    core.info(`The Issue Payload is: ${issuePayload}`)
-    const rewireInputs: RewireInputs = new RewireInputs(issuePayload, adoInputs)
+    core.info(`The Issue Payload is: ${JSON.stringify(issuePayload)}`)
+    const rewireInputs: IssueCommand = new IssueCommand(
+      octokit,
+      command,
+      issuePayload,
+      adoInputs
+    )
     return rewireInputs
   }
 

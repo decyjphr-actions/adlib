@@ -1,17 +1,21 @@
-import * as core from '@actions/core'
 import nock from 'nock'
 import * as inputHelper from '../src/inputHelper'
-import {RewireInputs} from '../src/types'
+import {IssueCommand} from '../src/issueCommand'
 import * as path from 'path'
+import {IIssue} from '../src/types'
+//import { initializeNock, repository, cleanAll, teardownNock } from './common'
+
+let githubScope: nock.Scope
 
 beforeAll(() => {
   process.env['INPUT_GITHUB_TOKEN'] = 'abc'
   process.env['INPUT_ADO_PAT'] = 'abc'
   process.env['INPUT_ISSUE_BODY_JSON'] =
-    '{"repo":"repo1", "action":"transfer", "targetOrg":"targetOrg", "issue_name":"repoinputs"}'
+    '{"Destination_Project":"test","Build_Definition":"7"}'
   process.env['GITHUB_REPOSITORY'] = 'decyjphr-org/admin'
   process.env['GITHUB_ACTOR'] = 'decyjphr'
   process.env['INPUT_ISSUE_NAME'] = 'repoinputs'
+  process.env['INPUT_COMMAND'] = 'ack'
   process.env['GITHUB_EVENT_PATH'] = path.join(
     __dirname,
     'fixtures',
@@ -25,17 +29,45 @@ beforeAll(() => {
 })
 
 beforeEach(() => {
-  nock.disableNetConnect()
+  githubScope = initializeNock()
+  githubScope
+    .post('/repos/decyjphr-org/actions-issue-forms/issues/44/reactions')
+    .reply(200, '')
+  //nock.disableNetConnect()
 })
 
 test('Input Helper test', () => {
-  const inputs: RewireInputs | undefined = inputHelper.getInputs()
+  const inputs: IssueCommand | undefined = inputHelper.getInputs()
 
-  core.debug(`Inputs ${JSON.stringify(inputs)}`)
-  core.debug(`Inputs is Rewire Inputs ${inputs instanceof RewireInputs}`)
   //expect(inputs).toBeDefined()
   //expect(inputs).toBeInstanceOf(RewireInputs)
-  if (inputs instanceof RewireInputs) {
-    const rewireInputs: RewireInputs = inputs
+  if (inputs instanceof IssueCommand) {
+    const rewireInputs: IssueCommand = inputs
   }
 })
+
+test('Input Helper Ack test', () => {
+  const inputs: IIssue | undefined = inputHelper.getInputs()
+
+  //expect(inputs).toBeDefined()
+  //expect(inputs).toBeInstanceOf(RewireInputs)
+  if (inputs instanceof IssueCommand) {
+    const rewireInputs: IssueCommand = inputs
+    rewireInputs.execute()
+  }
+})
+
+function initializeNock(): nock.Scope {
+  nock.disableNetConnect()
+  return nock('https://api.github.com')
+}
+
+function teardownNock(githubScope: nock.Scope): void {
+  expect(githubScope.isDone()).toBe(true)
+
+  nock.cleanAll()
+}
+
+function cleanAll(): void {
+  nock.cleanAll()
+}

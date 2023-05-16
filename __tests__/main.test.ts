@@ -7,7 +7,8 @@ beforeAll(() => {
   process.env['INPUT_GITHUB_TOKEN'] = 'abc'
   process.env['INPUT_ADO_PAT'] = 'abc'
   process.env['INPUT_ISSUE_BODY_JSON'] =
-    '{"repo":"repo1", "action":"transfer", "targetOrg":"targetOrg", "issue_name":"repoinputs"}'
+    '{"Destination_Project":"test","Build_Definition":"7"}'
+  process.env['INPUT_COMMAND'] = 'ack'
   process.env['GITHUB_REPOSITORY'] = 'decyjphr-org/admin'
   process.env['GITHUB_ACTOR'] = 'decyjphr'
   process.env['INPUT_ISSUE_NAME'] = 'repoinputs'
