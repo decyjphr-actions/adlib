@@ -48,10 +48,7 @@ export class IssueCommand implements IIssue {
   }
 
   async validate(): Promise<void> {
-    const creds = Buffer.from(
-      `:${this.adoInputs.adoToken}`,
-      'base64'
-    ).toString()
+    const creds = Buffer.from(`:${this.adoInputs.adoToken}`).toString('base64')
     core.debug(`creds: ${creds}`)
     const url =
       'https://dev.azure.com/octoshift-demo/migration/_apis/serviceendpoint/endpoints?endpointNames=decyjphr-org&api-version=7.1-preview.4'

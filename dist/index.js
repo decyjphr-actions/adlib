@@ -156,7 +156,7 @@ class IssueCommand {
     }
     validate() {
         return __awaiter(this, void 0, void 0, function* () {
-            const creds = Buffer.from(`:${this.adoInputs.adoToken}`, 'base64').toString();
+            const creds = Buffer.from(`:${this.adoInputs.adoToken}`).toString('base64');
             core.debug(`creds: ${creds}`);
             const url = 'https://dev.azure.com/octoshift-demo/migration/_apis/serviceendpoint/endpoints?endpointNames=decyjphr-org&api-version=7.1-preview.4';
             //const apistr = `https://dev.azure.com/${this.adoInputs.organization}/${this.adoInputs.project}/_apis/serviceendpoint/endpoints?endpointNames=decyjphr-org&api-version=7.1-preview.4`
