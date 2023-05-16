@@ -15,7 +15,6 @@ beforeAll(() => {
   process.env['GITHUB_REPOSITORY'] = 'decyjphr-org/admin'
   process.env['GITHUB_ACTOR'] = 'decyjphr'
   process.env['INPUT_ISSUE_NAME'] = 'repoinputs'
-  process.env['INPUT_COMMAND'] = 'ack'
   process.env['GITHUB_EVENT_PATH'] = path.join(
     __dirname,
     'fixtures',
@@ -37,7 +36,7 @@ beforeEach(() => {
     .reply(200, '')
   //nock.disableNetConnect()
 })
-
+/*
 test('Input Helper test', () => {
   const inputs: IssueCommand | undefined = inputHelper.getInputs()
 
@@ -47,12 +46,25 @@ test('Input Helper test', () => {
     const rewireInputs: IssueCommand = inputs
   }
 })
-
+*/
 test('Input Helper Ack test', () => {
+  process.env['INPUT_COMMAND'] = 'ack'
   const inputs: IIssue | undefined = inputHelper.getInputs()
 
-  //expect(inputs).toBeDefined()
-  //expect(inputs).toBeInstanceOf(RewireInputs)
+  expect(inputs).toBeDefined()
+  expect(inputs).toBeInstanceOf(IssueCommand)
+  if (inputs instanceof IssueCommand) {
+    const rewireInputs: IssueCommand = inputs
+    rewireInputs.execute()
+  }
+})
+
+test('Input Helper Validate test', () => {
+  process.env['INPUT_COMMAND'] = 'validate'
+  const inputs: IIssue | undefined = inputHelper.getInputs()
+
+  expect(inputs).toBeDefined()
+  expect(inputs).toBeInstanceOf(IssueCommand)
   if (inputs instanceof IssueCommand) {
     const rewireInputs: IssueCommand = inputs
     rewireInputs.execute()

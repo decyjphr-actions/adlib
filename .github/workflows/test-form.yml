@@ -31,10 +31,19 @@ jobs:
             const input = JSON.parse(payload)
             core.setOutput('issue_name', input.issue_name);
 
-      - uses: ./
+      - id: ack-test
+        uses: ./
         with:
           ado_pat: ${{ secrets.ADO_PAT }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           issue_body_json: ${{ steps.parse.outputs.payload }}
           command: 'ack'
+
+      - id: validate-test
+        uses: ./
+        with:
+          ado_pat: ${{ secrets.ADO_PAT }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          issue_body_json: ${{ steps.parse.outputs.payload }}
+          command: 'validate'
     

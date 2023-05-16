@@ -2,7 +2,7 @@ import * as core from '@actions/core'
 import * as inputHelper from './inputHelper'
 import {IssueCommand} from './issueCommand'
 
-async function run(): Promise<void> {
+export async function run(): Promise<void> {
   try {
     const inputs: IssueCommand | undefined = inputHelper.getInputs()
     core.debug(`Inputs ${JSON.stringify(inputs)}`)
@@ -13,6 +13,7 @@ async function run(): Promise<void> {
     }
     core.debug('Done with main')
   } catch (error) {
+    core.error(`Unexpected Error encountered when executing main ${error}`)
     if (error instanceof Error) core.setFailed(error.message)
   }
 }

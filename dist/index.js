@@ -45,16 +45,19 @@ function getInputs() {
         required: true
     });
     const command = types_1.Commands[commandstr];
+    core.debug(`Command is = ${command}`);
     const adoToken = core.getInput(types_1.InputVariables.AdoToken, {
         required: true
     });
+    core.debug(`adoToken is = ${adoToken}`);
     const issue_body = core.getInput(types_1.InputVariables.IssueBody, {
         required: true
     });
-    core.debug(issue_body);
+    core.debug(`Issue Body is = ${issue_body}`);
     const adoInputs = Object.assign({}, JSON.parse(issue_body), {
         adoToken
     });
+    core.debug(`adoInputs is = ${JSON.stringify(adoInputs)}`);
     const actor = process.env.GITHUB_ACTOR; //core.getInput(Inputs.Requestor, {required: true})
     if (!actor) {
         throw new Error('actor is undefined');
@@ -62,17 +65,21 @@ function getInputs() {
     const githubToken = core.getInput(types_1.InputVariables.GitHubToken, {
         required: true
     });
+    core.debug(`githubToken is = ${githubToken}`);
     const octokit = github.getOctokit(githubToken);
-    //core.debug(`context is ${JSON.stringify(github.context)}`)
+    core.debug(`context.eventName is ${JSON.stringify(github.context.eventName)}`);
+    core.debug(`context.payload.action is ${JSON.stringify(github.context.payload.action)}`);
     if (github.context.eventName === 'issues') {
         const issuePayload = github.context.payload;
-        core.info(`The Issue Payload is: ${JSON.stringify(issuePayload)}`);
+        //core.info(`The Issue Payload is: ${JSON.stringify(issuePayload)}`)
         const rewireInputs = new issueCommand_1.IssueCommand(octokit, actor, command, issuePayload.issue, issuePayload.repository, adoInputs);
         return rewireInputs;
     }
     else if (github.context.eventName === 'issue_comment') {
         const issueCommentPayload = github.context.payload;
-        core.info(`The Issue Comment Payload is: ${JSON.stringify(issueCommentPayload)}`);
+        //core.info(
+        //  `The Issue Comment Payload is: ${JSON.stringify(issueCommentPayload)}`
+        // )
         const rewireInputs = new issueCommentCommand_1.IssueCommentCommand(octokit, actor, command, adoInputs, issueCommentPayload);
         return rewireInputs;
     }
@@ -123,6 +130,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.IssueCommand = void 0;
 const core = __importStar(__nccwpck_require__(2186));
+const https_1 = __nccwpck_require__(5687);
 const acknowledgement = `Hello @{{author}}, I'm a bot that helps you rewire your GitHub issues to Azure DevOps. I've received your request to rewire this issue to Azure DevOps. I'll let you know when I'm done.`;
 class IssueCommand {
     constructor(_octokit, _actor, _command, _issue, _repository, _adoInputs) {
@@ -146,6 +154,43 @@ class IssueCommand {
     addLabels(labels) {
         throw new Error(`Method addLabels(${labels}) not implemented.`);
     }
+    validate() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const creds = Buffer.from(`:${this.adoInputs.adoToken}`, 'base64').toString();
+            core.debug(`creds: ${creds}`);
+            const url = 'https://dev.azure.com/octoshift-demo/migration/_apis/serviceendpoint/endpoints?endpointNames=decyjphr-org&api-version=7.1-preview.4';
+            //const apistr = `https://dev.azure.com/${this.adoInputs.organization}/${this.adoInputs.project}/_apis/serviceendpoint/endpoints?endpointNames=decyjphr-org&api-version=7.1-preview.4`
+            //const request = require('request')
+            const options = {
+                method: 'GET',
+                //url: 'https://dev.azure.com/octoshift-demo/migration/_apis/serviceendpoint/endpoints?endpointNames=decyjphr-org&api-version=7.1-preview.4',
+                headers: {
+                    Authorization: `Basic ${creds}`
+                }
+            };
+            (0, https_1.request)(url, options, function (res) {
+                core.debug(`STATUS:  ${res.statusCode}`);
+                core.debug(`HEADERS:  ${JSON.stringify(res.headers)}`);
+                res.setEncoding('utf8');
+                res.on('data', function (chunk) {
+                    core.debug(`BODY: ${chunk}`);
+                });
+            });
+            /*
+            const adoapi = await fetch(apistr, {
+              headers: new Headers({ 'Authorization': 'Basic ' + btoa(login + ':' + pass) })
+              } })
+            fetch("http://example.com/api/endpoint")
+          .then((response) => {
+            // Do something with response
+          })
+          .catch(function (err) {
+            console.log("Unable to fetch -", err);
+          });
+          */
+            //throw new Error('Method not implemented.')
+        });
+    }
     ack() {
         return __awaiter(this, void 0, void 0, function* () {
             core.debug(`ack called for ${JSON.stringify(this.issue)}`);
@@ -162,11 +207,11 @@ class IssueCommand {
                 const e = error;
                 if (e.status === 404) {
                     const message404 = `No Issue found for ${JSON.stringify(params)}`;
-                    core.debug(message404);
+                    core.error(message404);
                     throw new Error(message404);
                 }
                 const message = `${e} setting Ack for issue with ${JSON.stringify(params)}`;
-                core.debug(message);
+                core.error(message);
                 throw new Error(message);
             }
         });
@@ -299,6 +344,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.run = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const inputHelper = __importStar(__nccwpck_require__(6559));
 const issueCommand_1 = __nccwpck_require__(9533);
@@ -315,11 +361,13 @@ function run() {
             core.debug('Done with main');
         }
         catch (error) {
+            core.error(`Unexpected Error encountered when executing main ${error}`);
             if (error instanceof Error)
                 core.setFailed(error.message);
         }
     });
 }
+exports.run = run;
 run();
 
 
@@ -348,6 +396,7 @@ var Commands;
     Commands["secure"] = "secure";
     Commands["rewire"] = "rewire";
     Commands["comment"] = "comment";
+    Commands["validate"] = "validate";
 })(Commands = exports.Commands || (exports.Commands = {}));
 
 

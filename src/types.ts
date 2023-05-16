@@ -13,7 +13,8 @@ export enum Commands {
   ack = 'ack',
   secure = 'secure',
   rewire = 'rewire',
-  comment = 'comment'
+  comment = 'comment',
+  validate = 'validate'
 }
 
 type IssueBody = {
