@@ -45,20 +45,14 @@ export class IssueCommand implements IIssue {
     const params = {
       owner: this.payload.repository.owner.login,
       repo: this.payload.repository.name,
-      issue_number: this.payload.issue.number,
-      content: 'eyes' as
-        | 'eyes'
-        | '+1'
-        | '-1'
-        | 'laugh'
-        | 'confused'
-        | 'heart'
-        | 'hooray'
-        | 'rocket'
+      issue_number: this.payload.issue.number
     }
 
     try {
-      await this.octokitClient.rest.reactions.createForIssue(params)
+      await this.octokitClient.rest.reactions.createForIssue({
+        ...params,
+        content: 'eyes'
+      })
       await this.octokitClient.rest.issues.createComment({
         ...params,
         body: acknowledgement.replace('{{author}}', this.actor)

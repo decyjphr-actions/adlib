@@ -65,7 +65,7 @@ function getInputs() {
     if (github.context.eventName === 'issues') {
         const issuePayload = github.context.payload;
         core.info(`The Issue Payload is: ${JSON.stringify(issuePayload)}`);
-        const rewireInputs = new issueCommand_1.IssueCommand(octokit, command, issuePayload, adoInputs);
+        const rewireInputs = new issueCommand_1.IssueCommand(octokit, actor, command, issuePayload, adoInputs);
         return rewireInputs;
     }
     return undefined;
@@ -115,12 +115,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.IssueCommand = void 0;
 const core = __importStar(__nccwpck_require__(2186));
+const acknowledgement = `Hello @{{author}}, I'm a bot that helps you rewire your GitHub issues to Azure DevOps. I've received your request to rewire this issue to Azure DevOps. I'll let you know when I'm done.`;
 class IssueCommand {
-    constructor(_octokit, _command, _issue, _adoInputs) {
+    constructor(_octokit, _actor, _command, _issue, _adoInputs) {
         this.payload = _issue;
         this.adoInputs = _adoInputs;
         this.command = _command;
         this.octokitClient = _octokit;
+        this.actor = _actor;
     }
     execute() {
         const _commandName = this.command;
@@ -141,11 +143,11 @@ class IssueCommand {
             const params = {
                 owner: this.payload.repository.owner.login,
                 repo: this.payload.repository.name,
-                issue_number: this.payload.issue.number,
-                content: 'eyes'
+                issue_number: this.payload.issue.number
             };
             try {
-                yield this.octokitClient.rest.reactions.createForIssue(params);
+                yield this.octokitClient.rest.reactions.createForIssue(Object.assign(Object.assign({}, params), { content: 'eyes' }));
+                yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: acknowledgement.replace('{{author}}', this.actor) }));
             }
             catch (error) {
                 const e = error;
