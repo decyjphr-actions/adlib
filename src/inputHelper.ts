@@ -1,10 +1,15 @@
+/* eslint-disable import/no-unresolved */
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-// eslint-disable-next-line import/no-unresolved
-import {IssuesEvent} from '@octokit/webhooks-definitions/schema'
+
+import {
+  IssuesEvent,
+  IssueCommentEvent
+} from '@octokit/webhooks-definitions/schema'
 
 import {AdoInputs, Commands, InputVariables} from './types'
 import {IssueCommand} from './issueCommand'
+import {IssueCommentCommand} from './issueCommentCommand'
 
 /**
  * Helper to get all the inputs for the action
@@ -46,8 +51,22 @@ export function getInputs(): IssueCommand | undefined {
       octokit,
       actor,
       command,
-      issuePayload,
+      issuePayload.issue,
+      issuePayload.repository,
       adoInputs
+    )
+    return rewireInputs
+  } else if (github.context.eventName === 'issue_comment') {
+    const issueCommentPayload = github.context.payload as IssueCommentEvent
+    core.info(
+      `The Issue Comment Payload is: ${JSON.stringify(issueCommentPayload)}`
+    )
+    const rewireInputs: IssueCommentCommand = new IssueCommentCommand(
+      octokit,
+      actor,
+      command,
+      adoInputs,
+      issueCommentPayload
     )
     return rewireInputs
   }

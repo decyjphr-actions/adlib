@@ -1,5 +1,5 @@
 // eslint-disable-next-line import/no-unresolved
-import {IssuesEvent} from '@octokit/webhooks-definitions/schema'
+import {Issue, Repository} from '@octokit/webhooks-definitions/schema'
 import {IIssue, AdoInputs, Commands} from './types'
 import {GitHub} from '@actions/github/lib/utils'
 import * as core from '@actions/core'
@@ -7,7 +7,8 @@ import * as core from '@actions/core'
 const acknowledgement = `Hello @{{author}}, I'm a bot that helps you rewire your GitHub issues to Azure DevOps. I've received your request to rewire this issue to Azure DevOps. I'll let you know when I'm done.`
 
 export class IssueCommand implements IIssue {
-  payload: IssuesEvent
+  repository: Repository
+  issue: Issue
   adoInputs: AdoInputs
   command: Commands
   octokitClient: InstanceType<typeof GitHub>
@@ -17,10 +18,12 @@ export class IssueCommand implements IIssue {
     _octokit: InstanceType<typeof GitHub>,
     _actor: string,
     _command: Commands,
-    _issue: IssuesEvent,
+    _issue: Issue,
+    _repository: Repository,
     _adoInputs: AdoInputs
   ) {
-    this.payload = _issue
+    this.issue = _issue
+    this.repository = _repository
     this.adoInputs = _adoInputs
     this.command = _command
     this.octokitClient = _octokit
@@ -41,11 +44,11 @@ export class IssueCommand implements IIssue {
     throw new Error(`Method addLabels(${labels}) not implemented.`)
   }
   async ack(): Promise<void> {
-    core.debug(`ack called for ${JSON.stringify(this.payload)}`)
+    core.debug(`ack called for ${JSON.stringify(this.issue)}`)
     const params = {
-      owner: this.payload.repository.owner.login,
-      repo: this.payload.repository.name,
-      issue_number: this.payload.issue.number
+      owner: this.repository.owner.login,
+      repo: this.repository.name,
+      issue_number: this.issue.number
     }
 
     try {

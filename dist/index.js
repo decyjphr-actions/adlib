@@ -31,10 +31,12 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getInputs = void 0;
+/* eslint-disable import/no-unresolved */
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
 const types_1 = __nccwpck_require__(8164);
 const issueCommand_1 = __nccwpck_require__(9533);
+const issueCommentCommand_1 = __nccwpck_require__(7086);
 /**
  * Helper to get all the inputs for the action
  */
@@ -65,7 +67,13 @@ function getInputs() {
     if (github.context.eventName === 'issues') {
         const issuePayload = github.context.payload;
         core.info(`The Issue Payload is: ${JSON.stringify(issuePayload)}`);
-        const rewireInputs = new issueCommand_1.IssueCommand(octokit, actor, command, issuePayload, adoInputs);
+        const rewireInputs = new issueCommand_1.IssueCommand(octokit, actor, command, issuePayload.issue, issuePayload.repository, adoInputs);
+        return rewireInputs;
+    }
+    else if (github.context.eventName === 'issue_comment') {
+        const issueCommentPayload = github.context.payload;
+        core.info(`The Issue Comment Payload is: ${JSON.stringify(issueCommentPayload)}`);
+        const rewireInputs = new issueCommentCommand_1.IssueCommentCommand(octokit, actor, command, adoInputs, issueCommentPayload);
         return rewireInputs;
     }
     return undefined;
@@ -117,8 +125,9 @@ exports.IssueCommand = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const acknowledgement = `Hello @{{author}}, I'm a bot that helps you rewire your GitHub issues to Azure DevOps. I've received your request to rewire this issue to Azure DevOps. I'll let you know when I'm done.`;
 class IssueCommand {
-    constructor(_octokit, _actor, _command, _issue, _adoInputs) {
-        this.payload = _issue;
+    constructor(_octokit, _actor, _command, _issue, _repository, _adoInputs) {
+        this.issue = _issue;
+        this.repository = _repository;
         this.adoInputs = _adoInputs;
         this.command = _command;
         this.octokitClient = _octokit;
@@ -139,11 +148,11 @@ class IssueCommand {
     }
     ack() {
         return __awaiter(this, void 0, void 0, function* () {
-            core.debug(`ack called for ${JSON.stringify(this.payload)}`);
+            core.debug(`ack called for ${JSON.stringify(this.issue)}`);
             const params = {
-                owner: this.payload.repository.owner.login,
-                repo: this.payload.repository.name,
-                issue_number: this.payload.issue.number
+                owner: this.repository.owner.login,
+                repo: this.repository.name,
+                issue_number: this.issue.number
             };
             try {
                 yield this.octokitClient.rest.reactions.createForIssue(Object.assign(Object.assign({}, params), { content: 'eyes' }));
@@ -164,6 +173,26 @@ class IssueCommand {
     }
 }
 exports.IssueCommand = IssueCommand;
+
+
+/***/ }),
+
+/***/ 7086:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.IssueCommentCommand = void 0;
+// eslint-disable-next-line filenames/match-regex
+const issueCommand_1 = __nccwpck_require__(9533);
+class IssueCommentCommand extends issueCommand_1.IssueCommand {
+    constructor(_octokit, _actor, _command, _adoInputs, _issueComment) {
+        super(_octokit, _actor, _command, _issueComment.issue, _issueComment.repository, _adoInputs);
+        this.issueComment = _issueComment;
+    }
+}
+exports.IssueCommentCommand = IssueCommentCommand;
 
 
 /***/ }),
