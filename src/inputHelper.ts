@@ -44,6 +44,7 @@ export function getInputs(): IssueCommand | undefined {
     core.info(`The Issue Payload is: ${JSON.stringify(issuePayload)}`)
     const rewireInputs: IssueCommand = new IssueCommand(
       octokit,
+      actor,
       command,
       issuePayload,
       adoInputs

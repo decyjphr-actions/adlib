@@ -4,14 +4,18 @@ import {IIssue, AdoInputs, Commands} from './types'
 import {GitHub} from '@actions/github/lib/utils'
 import * as core from '@actions/core'
 
+const acknowledgement = `Hello @{{author}}, I'm a bot that helps you rewire your GitHub issues to Azure DevOps. I've received your request to rewire this issue to Azure DevOps. I'll let you know when I'm done.`
+
 export class IssueCommand implements IIssue {
   payload: IssuesEvent
   adoInputs: AdoInputs
   command: Commands
   octokitClient: InstanceType<typeof GitHub>
+  actor: string
 
   constructor(
     _octokit: InstanceType<typeof GitHub>,
+    _actor: string,
     _command: Commands,
     _issue: IssuesEvent,
     _adoInputs: AdoInputs
@@ -20,6 +24,7 @@ export class IssueCommand implements IIssue {
     this.adoInputs = _adoInputs
     this.command = _command
     this.octokitClient = _octokit
+    this.actor = _actor
   }
   execute(): void {
     const _commandName = this.command as keyof typeof this
@@ -54,6 +59,10 @@ export class IssueCommand implements IIssue {
 
     try {
       await this.octokitClient.rest.reactions.createForIssue(params)
+      await this.octokitClient.rest.issues.createComment({
+        ...params,
+        body: acknowledgement.replace('{{author}}', this.actor)
+      })
     } catch (error) {
       const e = error as Error & {status: number}
       if (e.status === 404) {

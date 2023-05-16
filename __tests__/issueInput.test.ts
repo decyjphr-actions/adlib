@@ -33,6 +33,8 @@ beforeEach(() => {
   githubScope
     .post('/repos/decyjphr-org/actions-issue-forms/issues/44/reactions')
     .reply(200, '')
+    .post('/repos/decyjphr-org/actions-issue-forms/issues/44/comments')
+    .reply(200, '')
   //nock.disableNetConnect()
 })
 
