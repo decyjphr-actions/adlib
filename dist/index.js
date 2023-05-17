@@ -151,7 +151,9 @@ const core = __importStar(__nccwpck_require__(2186));
 const node_fetch_1 = __importDefault(__nccwpck_require__(467));
 const acknowledgement = `Hello @{{author}}, I'm a bot that helps you rewire your ADO pipelines to GitHub link to use a shared GitHub App based service connection. I've received your request to rewire your project {{ado_project}}. I'll let you know when I'm done.`;
 const goodValidation = `Hello @{{author}}, I will be using the following Service Connection to rewire your ADO pipelines:\n`;
-const badValidation = `Hello @{{author}}, Looks like I am having trouble with your request. Please refer to the error:\n`;
+const badValidation = `Hello @{{author}}, I am having trouble with your request. Please see the error below:\n`;
+const goodPipelinesList = `Hello @{{author}}, I found the following pipelines in your project that will be rewired:\n`;
+const badPipelinesList = `Hello @{{author}}, I am having trouble retrieving pipelines from your project. Please refer to the error below:\n`;
 class IssueCommand {
     constructor(_octokit, _actor, _command, _issue, _repository, _adoInputs) {
         this.issue = _issue;
@@ -180,7 +182,8 @@ class IssueCommand {
         return __awaiter(this, void 0, void 0, function* () {
             const creds = Buffer.from(`:${this.adoInputs.adoToken}`).toString('base64');
             core.debug(`creds: ${creds}`);
-            const url = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.adoSharedProject}/_apis/serviceendpoint/endpoints?endpointNames=${this.adoInputs.adoSharedServiceConnection}&api-version=7.1-preview.4`;
+            const serviceConnectionByNameUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.adoSharedProject}/_apis/serviceendpoint/endpoints?endpointNames=${this.adoInputs.adoSharedServiceConnection}&api-version=7.0`;
+            const listPipelinesUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.Destination_Project}/_apis/build/definitions?api-version=7.0`;
             const headers = [
                 ['Authorization', `Basic ${creds}`],
                 ['Accept', 'application/json;api-version=7.1-preview.4'],
@@ -192,14 +195,14 @@ class IssueCommand {
                     repo: this.repository.name,
                     issue_number: this.issue.number
                 };
-                const response = yield (0, node_fetch_1.default)(url, {
+                const serviceConnectionByNameResponse = yield (0, node_fetch_1.default)(serviceConnectionByNameUrl, {
                     method: 'GET',
                     headers
                 });
-                core.debug(`response: ${JSON.stringify(response)}`);
-                const responseObject = yield response.json();
+                core.debug(`response: ${JSON.stringify(serviceConnectionByNameResponse)}`);
+                const responseObject = yield serviceConnectionByNameResponse.json();
                 core.debug(`response: ${JSON.stringify(responseObject)}`);
-                if (responseObject.count === 1) {
+                if (serviceConnectionByNameResponse.ok && responseObject.count === 1) {
                     core.debug(`Creating issue comment with goodValidation message`);
                     yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: goodValidation
                             .replace('{{author}}', this.actor)
@@ -207,9 +210,46 @@ class IssueCommand {
                 }
                 else {
                     core.debug(`Creating issue comment with badValidation message`);
-                    const error = `Service Connection ${this.adoInputs.adoSharedServiceConnection} not found in project ${this.adoInputs.adoSharedProject}`;
+                    const error = `Service Connection ${this.adoInputs.adoSharedServiceConnection} not found in project ${this.adoInputs.adoSharedProject}. Error: ${serviceConnectionByNameResponse.statusText}`;
                     core.error(error);
                     yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: badValidation
+                            .replace('{{author}}', this.actor)
+                            .concat(`\n${error}`) }));
+                }
+            }
+            catch (error) {
+                const e = error;
+                const message = `${e} performing validate command`;
+                core.error(message);
+                throw new Error(message);
+            }
+            try {
+                const params = {
+                    owner: this.repository.owner.login,
+                    repo: this.repository.name,
+                    issue_number: this.issue.number
+                };
+                const listPipelinesResponse = yield (0, node_fetch_1.default)(listPipelinesUrl, {
+                    method: 'GET',
+                    headers
+                });
+                core.debug(`response: ${JSON.stringify(listPipelinesResponse)}`);
+                core.debug(`listPipelinesResponse.ok = ${listPipelinesResponse.ok}`);
+                core.debug(`listPipelinesResponse.status = ${listPipelinesResponse.status}`);
+                core.debug(`listPipelinesResponse.statusText = ${listPipelinesResponse.statusText}`);
+                const responseObject = yield listPipelinesResponse.json();
+                core.debug(`response: ${JSON.stringify(responseObject)}`);
+                if (listPipelinesResponse.ok) {
+                    core.debug(`Creating issue comment with goodPipelinesList message`);
+                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: goodPipelinesList
+                            .replace('{{author}}', this.actor)
+                            .concat(`\n${JSON.stringify(responseObject.value[0], null, 2)}`) }));
+                }
+                else {
+                    core.debug(`Creating issue comment with badPipelinesList message`);
+                    const error = `No pipelines found in project ${this.adoInputs.adoSharedProject}`;
+                    core.error(error);
+                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: badPipelinesList
                             .replace('{{author}}', this.actor)
                             .concat(`\n${error}`) }));
                 }

@@ -7,7 +7,9 @@ import nodeFetch, {Response} from 'node-fetch'
 
 const acknowledgement = `Hello @{{author}}, I'm a bot that helps you rewire your ADO pipelines to GitHub link to use a shared GitHub App based service connection. I've received your request to rewire your project {{ado_project}}. I'll let you know when I'm done.`
 const goodValidation = `Hello @{{author}}, I will be using the following Service Connection to rewire your ADO pipelines:\n`
-const badValidation = `Hello @{{author}}, Looks like I am having trouble with your request. Please refer to the error:\n`
+const badValidation = `Hello @{{author}}, I am having trouble with your request. Please see the error below:\n`
+const goodPipelinesList = `Hello @{{author}}, I found the following pipelines in your project that will be rewired:\n`
+const badPipelinesList = `Hello @{{author}}, I am having trouble retrieving pipelines from your project. Please refer to the error below:\n`
 
 export class IssueCommand implements IIssue {
   repository: Repository
@@ -52,7 +54,9 @@ export class IssueCommand implements IIssue {
   async validate(): Promise<void> {
     const creds = Buffer.from(`:${this.adoInputs.adoToken}`).toString('base64')
     core.debug(`creds: ${creds}`)
-    const url = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.adoSharedProject}/_apis/serviceendpoint/endpoints?endpointNames=${this.adoInputs.adoSharedServiceConnection}&api-version=7.1-preview.4`
+    const serviceConnectionByNameUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.adoSharedProject}/_apis/serviceendpoint/endpoints?endpointNames=${this.adoInputs.adoSharedServiceConnection}&api-version=7.0`
+
+    const listPipelinesUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.Destination_Project}/_apis/build/definitions?api-version=7.0`
 
     const headers = [
       ['Authorization', `Basic ${creds}`],
@@ -65,14 +69,17 @@ export class IssueCommand implements IIssue {
         repo: this.repository.name,
         issue_number: this.issue.number
       }
-      const response: Response = await nodeFetch(url, {
-        method: 'GET',
-        headers
-      })
-      core.debug(`response: ${JSON.stringify(response)}`)
-      const responseObject = await response.json()
+      const serviceConnectionByNameResponse: Response = await nodeFetch(
+        serviceConnectionByNameUrl,
+        {
+          method: 'GET',
+          headers
+        }
+      )
+      core.debug(`response: ${JSON.stringify(serviceConnectionByNameResponse)}`)
+      const responseObject = await serviceConnectionByNameResponse.json()
       core.debug(`response: ${JSON.stringify(responseObject)}`)
-      if (responseObject.count === 1) {
+      if (serviceConnectionByNameResponse.ok && responseObject.count === 1) {
         core.debug(`Creating issue comment with goodValidation message`)
         await this.octokitClient.rest.issues.createComment({
           ...params,
@@ -82,11 +89,61 @@ export class IssueCommand implements IIssue {
         })
       } else {
         core.debug(`Creating issue comment with badValidation message`)
-        const error = `Service Connection ${this.adoInputs.adoSharedServiceConnection} not found in project ${this.adoInputs.adoSharedProject}`
+        const error = `Service Connection ${this.adoInputs.adoSharedServiceConnection} not found in project ${this.adoInputs.adoSharedProject}. Error: ${serviceConnectionByNameResponse.statusText}`
         core.error(error)
         await this.octokitClient.rest.issues.createComment({
           ...params,
           body: badValidation
+            .replace('{{author}}', this.actor)
+            .concat(`\n${error}`)
+        })
+      }
+    } catch (error) {
+      const e = error as Error & {status: number}
+      const message = `${e} performing validate command`
+      core.error(message)
+      throw new Error(message)
+    }
+
+    try {
+      const params = {
+        owner: this.repository.owner.login,
+        repo: this.repository.name,
+        issue_number: this.issue.number
+      }
+      const listPipelinesResponse: Response = await nodeFetch(
+        listPipelinesUrl,
+        {
+          method: 'GET',
+          headers
+        }
+      )
+      core.debug(`response: ${JSON.stringify(listPipelinesResponse)}`)
+      core.debug(`listPipelinesResponse.ok = ${listPipelinesResponse.ok}`)
+      core.debug(
+        `listPipelinesResponse.status = ${listPipelinesResponse.status}`
+      )
+      core.debug(
+        `listPipelinesResponse.statusText = ${listPipelinesResponse.statusText}`
+      )
+      const responseObject = await listPipelinesResponse.json()
+      core.debug(`response: ${JSON.stringify(responseObject)}`)
+
+      if (listPipelinesResponse.ok) {
+        core.debug(`Creating issue comment with goodPipelinesList message`)
+        await this.octokitClient.rest.issues.createComment({
+          ...params,
+          body: goodPipelinesList
+            .replace('{{author}}', this.actor)
+            .concat(`\n${JSON.stringify(responseObject.value[0], null, 2)}`)
+        })
+      } else {
+        core.debug(`Creating issue comment with badPipelinesList message`)
+        const error = `No pipelines found in project ${this.adoInputs.adoSharedProject}`
+        core.error(error)
+        await this.octokitClient.rest.issues.createComment({
+          ...params,
+          body: badPipelinesList
             .replace('{{author}}', this.actor)
             .concat(`\n${error}`)
         })
