@@ -149,7 +149,9 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.IssueCommand = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const node_fetch_1 = __importDefault(__nccwpck_require__(467));
-const acknowledgement = `Hello @{{author}}, I'm a bot that helps you rewire your GitHub issues to Azure DevOps. I've received your request to rewire this issue to Azure DevOps. I'll let you know when I'm done.`;
+const acknowledgement = `Hello @{{author}}, I'm a bot that helps you rewire your ADO pipelines to GitHub link to use a shared GitHub App based service connection. I've received your request to rewire your project {{ado_project}}. I'll let you know when I'm done.`;
+const goodValidation = `Hello @{{author}}, I will be using the following Service Connection to rewire your ADO pipelines:\n`;
+const badValidation = `Hello @{{author}}, Looks like I am having trouble with your request. Please refer to the error:\n`;
 class IssueCommand {
     constructor(_octokit, _actor, _command, _issue, _repository, _adoInputs) {
         this.issue = _issue;
@@ -184,31 +186,40 @@ class IssueCommand {
                 ['Accept', 'application/json;api-version=7.1-preview.4'],
                 ['Content-Type', 'application/json; charset=utf-8']
             ];
-            const response = yield (0, node_fetch_1.default)(url, {
-                method: 'GET',
-                headers
-            });
-            core.debug(`response: ${JSON.stringify(response)}`);
-            const responseObject = yield response.json();
-            core.debug(`response: ${JSON.stringify(responseObject)}`);
-            /*
-            request(url, options, res => {
-              core.debug(`STATUS:  ${res.statusCode}`)
-              core.debug(`HEADERS:  ${JSON.stringify(res.headers)}`)
-              res.setEncoding('utf8')
-              res.on('data', function (chunk: string) {
-                core.debug(`BODY: ${chunk}`)
-              })
-            })
-        */
-            // const response = await fetch(url, {
-            //   headers: new Headers({Authorization: `Basic ${x}`})
-            // })
-            //const response = await fetch(url)
-            //core.debug(`adoResponse: ${JSON.stringify(response)}`)
-            //const jsonData = await adoResponse.json()
-            //core.debug(`jsonData: ${JSON.stringify(jsonData)}`)
-            //throw new Error('Method not implemented.')
+            try {
+                const params = {
+                    owner: this.repository.owner.login,
+                    repo: this.repository.name,
+                    issue_number: this.issue.number
+                };
+                const response = yield (0, node_fetch_1.default)(url, {
+                    method: 'GET',
+                    headers
+                });
+                core.debug(`response: ${JSON.stringify(response)}`);
+                const responseObject = yield response.json();
+                core.debug(`response: ${JSON.stringify(responseObject)}`);
+                if (responseObject.count === 1) {
+                    core.debug(`Creating issue comment with goodValidation message`);
+                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: goodValidation
+                            .replace('{{author}}', this.actor)
+                            .concat(`\n${JSON.stringify(responseObject.value[0], null, 2)}`) }));
+                }
+                else {
+                    core.debug(`Creating issue comment with badValidation message`);
+                    const error = `Service Connection ${this.adoInputs.adoSharedServiceConnection} not found in project ${this.adoInputs.adoSharedProject}`;
+                    core.error(error);
+                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: badValidation
+                            .replace('{{author}}', this.actor)
+                            .concat(`\n${error}`) }));
+                }
+            }
+            catch (error) {
+                const e = error;
+                const message = `${e} performing validate command`;
+                core.error(message);
+                throw new Error(message);
+            }
         });
     }
     ack() {
@@ -221,7 +232,9 @@ class IssueCommand {
             };
             try {
                 yield this.octokitClient.rest.reactions.createForIssue(Object.assign(Object.assign({}, params), { content: 'eyes' }));
-                yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: acknowledgement.replace('{{author}}', this.actor) }));
+                yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: acknowledgement
+                        .replace('{{author}}', this.actor)
+                        .replace('{{ado_project}}', this.adoInputs.Destination_Project) }));
             }
             catch (error) {
                 const e = error;
