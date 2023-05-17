@@ -50,12 +50,27 @@ function getInputs() {
         required: true
     });
     core.debug(`adoToken is = ${adoToken}`);
+    const adoOrg = core.getInput(types_1.InputVariables.AdoOrg, {
+        required: true
+    });
+    core.debug(`adoOrg is = ${adoOrg}`);
+    const adoSharedProject = core.getInput(types_1.InputVariables.AdoSharedProject, {
+        required: true
+    });
+    core.debug(`adoSharedProject is = ${adoSharedProject}`);
+    const adoSharedServiceConnection = core.getInput(types_1.InputVariables.AdoSharedServiceConnection, {
+        required: true
+    });
+    core.debug(`adoSharedServiceConnection is = ${adoSharedServiceConnection}`);
     const issue_body = core.getInput(types_1.InputVariables.IssueBody, {
         required: true
     });
     core.debug(`Issue Body is = ${issue_body}`);
     const adoInputs = Object.assign({}, JSON.parse(issue_body), {
-        adoToken
+        adoToken,
+        adoOrg,
+        adoSharedProject,
+        adoSharedServiceConnection
     });
     core.debug(`adoInputs is = ${JSON.stringify(adoInputs)}`);
     const actor = process.env.GITHUB_ACTOR; //core.getInput(Inputs.Requestor, {required: true})
@@ -127,10 +142,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.IssueCommand = void 0;
 const core = __importStar(__nccwpck_require__(2186));
-const https_1 = __nccwpck_require__(5687);
+const node_fetch_1 = __importDefault(__nccwpck_require__(467));
 const acknowledgement = `Hello @{{author}}, I'm a bot that helps you rewire your GitHub issues to Azure DevOps. I've received your request to rewire this issue to Azure DevOps. I'll let you know when I'm done.`;
 class IssueCommand {
     constructor(_octokit, _actor, _command, _issue, _repository, _adoInputs) {
@@ -142,11 +160,13 @@ class IssueCommand {
         this.actor = _actor;
     }
     execute() {
-        const _commandName = this.command;
-        if (typeof this[_commandName] === 'function') {
-            const command = this[_commandName];
-            command.call(this);
-        }
+        return __awaiter(this, void 0, void 0, function* () {
+            const _commandName = this.command;
+            if (typeof this[_commandName] === 'function') {
+                const command = this[_commandName];
+                yield command.call(this);
+            }
+        });
     }
     removeLabels(labels) {
         throw new Error(`Method removeLabels(${labels}) not implemented.`);
@@ -158,36 +178,36 @@ class IssueCommand {
         return __awaiter(this, void 0, void 0, function* () {
             const creds = Buffer.from(`:${this.adoInputs.adoToken}`).toString('base64');
             core.debug(`creds: ${creds}`);
-            const url = 'https://dev.azure.com/octoshift-demo/migration/_apis/serviceendpoint/endpoints?endpointNames=decyjphr-org&api-version=7.1-preview.4';
-            //const apistr = `https://dev.azure.com/${this.adoInputs.organization}/${this.adoInputs.project}/_apis/serviceendpoint/endpoints?endpointNames=decyjphr-org&api-version=7.1-preview.4`
-            //const request = require('request')
-            const options = {
+            const url = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.adoSharedProject}/_apis/serviceendpoint/endpoints?endpointNames=${this.adoInputs.adoSharedServiceConnection}&api-version=7.1-preview.4`;
+            const headers = [
+                ['Authorization', `Basic ${creds}`],
+                ['Accept', 'application/json;api-version=7.1-preview.4'],
+                ['Content-Type', 'application/json; charset=utf-8']
+            ];
+            const response = yield (0, node_fetch_1.default)(url, {
                 method: 'GET',
-                //url: 'https://dev.azure.com/octoshift-demo/migration/_apis/serviceendpoint/endpoints?endpointNames=decyjphr-org&api-version=7.1-preview.4',
-                headers: {
-                    Authorization: `Basic ${creds}`
-                }
-            };
-            (0, https_1.request)(url, options, function (res) {
-                core.debug(`STATUS:  ${res.statusCode}`);
-                core.debug(`HEADERS:  ${JSON.stringify(res.headers)}`);
-                res.setEncoding('utf8');
-                res.on('data', function (chunk) {
-                    core.debug(`BODY: ${chunk}`);
-                });
+                headers
             });
+            core.debug(`response: ${JSON.stringify(response)}`);
+            const responseObject = yield response.json();
+            core.debug(`response: ${JSON.stringify(responseObject)}`);
             /*
-            const adoapi = await fetch(apistr, {
-              headers: new Headers({ 'Authorization': 'Basic ' + btoa(login + ':' + pass) })
-              } })
-            fetch("http://example.com/api/endpoint")
-          .then((response) => {
-            // Do something with response
-          })
-          .catch(function (err) {
-            console.log("Unable to fetch -", err);
-          });
-          */
+            request(url, options, res => {
+              core.debug(`STATUS:  ${res.statusCode}`)
+              core.debug(`HEADERS:  ${JSON.stringify(res.headers)}`)
+              res.setEncoding('utf8')
+              res.on('data', function (chunk: string) {
+                core.debug(`BODY: ${chunk}`)
+              })
+            })
+        */
+            // const response = await fetch(url, {
+            //   headers: new Headers({Authorization: `Basic ${x}`})
+            // })
+            //const response = await fetch(url)
+            //core.debug(`adoResponse: ${JSON.stringify(response)}`)
+            //const jsonData = await adoResponse.json()
+            //core.debug(`jsonData: ${JSON.stringify(jsonData)}`)
             //throw new Error('Method not implemented.')
         });
     }
@@ -356,7 +376,7 @@ function run() {
             core.debug(`Inputs is Rewire Inputs ${inputs instanceof issueCommand_1.IssueCommand}`);
             if (inputs instanceof issueCommand_1.IssueCommand) {
                 const rewireInputs = inputs;
-                rewireInputs.execute();
+                yield rewireInputs.execute();
             }
             core.debug('Done with main');
         }
@@ -389,6 +409,9 @@ var InputVariables;
     InputVariables["Requestor"] = "Requestor";
     InputVariables["IssueName"] = "issue_name";
     InputVariables["Command"] = "command";
+    InputVariables["AdoOrg"] = "ado_org";
+    InputVariables["AdoSharedProject"] = "ado_shared_project";
+    InputVariables["AdoSharedServiceConnection"] = "ado_shared_service_connection";
 })(InputVariables = exports.InputVariables || (exports.InputVariables = {}));
 var Commands;
 (function (Commands) {

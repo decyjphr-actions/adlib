@@ -27,13 +27,37 @@ export function getInputs(): IssueCommand | undefined {
   })
   core.debug(`adoToken is = ${adoToken}`)
 
+  const adoOrg: string = core.getInput(InputVariables.AdoOrg, {
+    required: true
+  })
+  core.debug(`adoOrg is = ${adoOrg}`)
+
+  const adoSharedProject: string = core.getInput(
+    InputVariables.AdoSharedProject,
+    {
+      required: true
+    }
+  )
+  core.debug(`adoSharedProject is = ${adoSharedProject}`)
+
+  const adoSharedServiceConnection: string = core.getInput(
+    InputVariables.AdoSharedServiceConnection,
+    {
+      required: true
+    }
+  )
+  core.debug(`adoSharedServiceConnection is = ${adoSharedServiceConnection}`)
+
   const issue_body: string = core.getInput(InputVariables.IssueBody, {
     required: true
   })
   core.debug(`Issue Body is = ${issue_body}`)
 
   const adoInputs: AdoInputs = Object.assign({}, JSON.parse(issue_body), {
-    adoToken
+    adoToken,
+    adoOrg,
+    adoSharedProject,
+    adoSharedServiceConnection
   })
   core.debug(`adoInputs is = ${JSON.stringify(adoInputs)}`)
 

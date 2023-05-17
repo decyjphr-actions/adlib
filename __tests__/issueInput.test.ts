@@ -8,13 +8,15 @@ import {IIssue} from '../src/types'
 let githubScope: nock.Scope
 
 beforeAll(() => {
-  process.env['INPUT_GITHUB_TOKEN'] = 'abc'
-  process.env['INPUT_ADO_PAT'] = 'abc'
+  process.env['INPUT_GITHUB_TOKEN'] = 'github_token'
+  process.env['INPUT_ADO_PAT'] = 'ado_pat'
+  process.env['INPUT_ADO_ORG'] = 'octoshift-demo'
+  process.env['INPUT_ADO_SHARED_PROJECT'] = 'migration'
+  process.env['INPUT_ADO_SHARED_SERVICE_CONNECTION'] = 'decyjphr-org'
   process.env['INPUT_ISSUE_BODY_JSON'] =
     '{"Destination_Project":"test","Build_Definition":"7"}'
   process.env['GITHUB_REPOSITORY'] = 'decyjphr-org/admin'
   process.env['GITHUB_ACTOR'] = 'decyjphr'
-  process.env['INPUT_ISSUE_NAME'] = 'repoinputs'
   process.env['GITHUB_EVENT_PATH'] = path.join(
     __dirname,
     'fixtures',
@@ -47,7 +49,7 @@ test('Input Helper test', () => {
   }
 })
 */
-test('Input Helper Ack test', () => {
+test('Input Helper Ack test', async () => {
   process.env['INPUT_COMMAND'] = 'ack'
   const inputs: IIssue | undefined = inputHelper.getInputs()
 
@@ -55,11 +57,11 @@ test('Input Helper Ack test', () => {
   expect(inputs).toBeInstanceOf(IssueCommand)
   if (inputs instanceof IssueCommand) {
     const rewireInputs: IssueCommand = inputs
-    rewireInputs.execute()
+    await rewireInputs.execute()
   }
 })
 
-test('Input Helper Validate test', () => {
+test('Input Helper Validate test', async () => {
   process.env['INPUT_COMMAND'] = 'validate'
   const inputs: IIssue | undefined = inputHelper.getInputs()
 
@@ -67,12 +69,12 @@ test('Input Helper Validate test', () => {
   expect(inputs).toBeInstanceOf(IssueCommand)
   if (inputs instanceof IssueCommand) {
     const rewireInputs: IssueCommand = inputs
-    rewireInputs.execute()
+    await rewireInputs.execute()
   }
-})
+}, 30000)
 
 function initializeNock(): nock.Scope {
-  nock.disableNetConnect()
+  // nock.disableNetConnect()
   return nock('https://api.github.com')
 }
 

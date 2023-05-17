@@ -3,7 +3,7 @@ import {Issue, Repository} from '@octokit/webhooks-definitions/schema'
 import {IIssue, AdoInputs, Commands} from './types'
 import {GitHub} from '@actions/github/lib/utils'
 import * as core from '@actions/core'
-import {RequestOptions, request} from 'https'
+import nodeFetch, {Response} from 'node-fetch'
 
 const acknowledgement = `Hello @{{author}}, I'm a bot that helps you rewire your GitHub issues to Azure DevOps. I've received your request to rewire this issue to Azure DevOps. I'll let you know when I'm done.`
 
@@ -31,11 +31,11 @@ export class IssueCommand implements IIssue {
     this.actor = _actor
   }
 
-  execute(): void {
+  async execute(): Promise<void> {
     const _commandName = this.command as keyof typeof this
     if (typeof this[_commandName] === 'function') {
       const command = this[_commandName] as Function
-      command.call(this)
+      await command.call(this)
     }
   }
 
@@ -50,37 +50,42 @@ export class IssueCommand implements IIssue {
   async validate(): Promise<void> {
     const creds = Buffer.from(`:${this.adoInputs.adoToken}`).toString('base64')
     core.debug(`creds: ${creds}`)
-    const url =
-      'https://dev.azure.com/octoshift-demo/migration/_apis/serviceendpoint/endpoints?endpointNames=decyjphr-org&api-version=7.1-preview.4'
-    //const apistr = `https://dev.azure.com/${this.adoInputs.organization}/${this.adoInputs.project}/_apis/serviceendpoint/endpoints?endpointNames=decyjphr-org&api-version=7.1-preview.4`
-    //const request = require('request')
-    const options: RequestOptions = {
+    const url = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.adoSharedProject}/_apis/serviceendpoint/endpoints?endpointNames=${this.adoInputs.adoSharedServiceConnection}&api-version=7.1-preview.4`
+
+    const headers = [
+      ['Authorization', `Basic ${creds}`],
+      ['Accept', 'application/json;api-version=7.1-preview.4'],
+      ['Content-Type', 'application/json; charset=utf-8']
+    ]
+
+    const response: Response = await nodeFetch(url, {
       method: 'GET',
-      //url: 'https://dev.azure.com/octoshift-demo/migration/_apis/serviceendpoint/endpoints?endpointNames=decyjphr-org&api-version=7.1-preview.4',
-      headers: {
-        Authorization: `Basic ${creds}`
-      }
-    }
-    request(url, options, function (res) {
+      headers
+    })
+    core.debug(`response: ${JSON.stringify(response)}`)
+    const responseObject = await response.json()
+    core.debug(`response: ${JSON.stringify(responseObject)}`)
+    /*
+    request(url, options, res => {
       core.debug(`STATUS:  ${res.statusCode}`)
       core.debug(`HEADERS:  ${JSON.stringify(res.headers)}`)
       res.setEncoding('utf8')
-      res.on('data', function (chunk) {
+      res.on('data', function (chunk: string) {
         core.debug(`BODY: ${chunk}`)
       })
     })
-    /*
-    const adoapi = await fetch(apistr, {
-      headers: new Headers({ 'Authorization': 'Basic ' + btoa(login + ':' + pass) })
-      } })
-    fetch("http://example.com/api/endpoint")
-  .then((response) => {
-    // Do something with response
-  })
-  .catch(function (err) {
-    console.log("Unable to fetch -", err);
-  });
-  */
+*/
+    // const response = await fetch(url, {
+    //   headers: new Headers({Authorization: `Basic ${x}`})
+    // })
+
+    //const response = await fetch(url)
+
+    //core.debug(`adoResponse: ${JSON.stringify(response)}`)
+
+    //const jsonData = await adoResponse.json()
+    //core.debug(`jsonData: ${JSON.stringify(jsonData)}`)
+
     //throw new Error('Method not implemented.')
   }
 

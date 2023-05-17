@@ -6,7 +6,10 @@ export enum InputVariables {
   AdoToken = 'ado_pat',
   Requestor = 'Requestor',
   IssueName = 'issue_name',
-  Command = 'command'
+  Command = 'command',
+  AdoOrg = 'ado_org',
+  AdoSharedProject = 'ado_shared_project',
+  AdoSharedServiceConnection = 'ado_shared_service_connection'
 }
 
 export enum Commands {
@@ -27,6 +30,9 @@ type IssueBody = {
 
 export type AdoInputs = IssueBody & {
   adoToken: string
+  adoOrg: string
+  adoSharedProject: string
+  adoSharedServiceConnection: string
 }
 
 export interface IIssue {

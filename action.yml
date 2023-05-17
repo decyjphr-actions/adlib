@@ -6,7 +6,16 @@ inputs:
     description: 'The Command to execute\nValid commands are: \n- ack\n- secure\n- rewire\n- comment'
     required: true
   ado_pat:
-    description: 'The Personal Access token used to call the API \nThis action required org admin previleges'
+    description: 'The Personal Access token used to call the ADO API \n'
+    required: true
+  ado_org:
+    description: 'The ADO org of interest'
+    required: true
+  ado_shared_project:
+    description: 'The ADO Shared Services Project of interest'
+    required: true
+  ado_shared_service_connection:
+    description: 'The ADO Shared Services Connection that will be shared'
     required: true
   github_token:
     description: 'The Personal Access token used to call the API \nThis action required org admin previleges'

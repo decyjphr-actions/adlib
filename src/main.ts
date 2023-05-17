@@ -9,7 +9,7 @@ export async function run(): Promise<void> {
     core.debug(`Inputs is Rewire Inputs ${inputs instanceof IssueCommand}`)
     if (inputs instanceof IssueCommand) {
       const rewireInputs: IssueCommand = inputs
-      rewireInputs.execute()
+      await rewireInputs.execute()
     }
     core.debug('Done with main')
   } catch (error) {
