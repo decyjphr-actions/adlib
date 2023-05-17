@@ -153,7 +153,7 @@ const acknowledgement = `Hello @{{author}}, I'm a bot that helps you rewire your
 const goodValidation = `Hello @{{author}}, I will be using the following Service Connection to rewire your ADO pipelines:\n`;
 const badValidation = `Hello @{{author}}, I am having trouble with your request. Please see the error below:\n`;
 const goodPipelinesList = `Hello @{{author}}, I found the following pipelines in your project that will be rewired:\n`;
-const badPipelinesList = `Hello @{{author}}, I am having trouble retrieving pipelines from your project. Please refer to the error below:\n`;
+const badPipelinesList = `Hello @{{author}}, I am having trouble retrieving pipelines from your project {{ado_project}}. Please refer to the error below:\n`;
 class IssueCommand {
     constructor(_octokit, _actor, _command, _issue, _repository, _adoInputs) {
         this.issue = _issue;
@@ -247,10 +247,11 @@ class IssueCommand {
                 }
                 else {
                     core.debug(`Creating issue comment with badPipelinesList message`);
-                    const error = `No pipelines found in project ${this.adoInputs.adoSharedProject}`;
+                    const error = `No pipelines found in project ${this.adoInputs.Destination_Project}. Please check the name of the project and resubmit the issue`;
                     core.error(error);
                     yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: badPipelinesList
                             .replace('{{author}}', this.actor)
+                            .replace('{{ado_project}}', this.adoInputs.Destination_Project)
                             .concat(`\n${error}`) }));
                 }
             }
