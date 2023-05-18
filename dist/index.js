@@ -314,7 +314,7 @@ class IssueCommand {
             core.debug(`response: ${JSON.stringify(responseObject)}`);
             if (listPipelinesResponse.ok) {
                 for (const build of responseObject.value) {
-                    const pipeline = this.getBuildDefinition(build._links.self.href);
+                    const pipeline = yield this.getBuildDefinition(build._links.self.href);
                     if (pipeline) {
                         pipelinesList.push(pipeline);
                     }
@@ -393,7 +393,7 @@ class IssueCommand {
                 method: 'GET',
                 headers: this.headers
             });
-            core.debug(`projectByNameResponse response: ${JSON.stringify(buildDefinitionResponse)}`);
+            core.debug(`buildDefinitionResponse response: ${JSON.stringify(buildDefinitionResponse)}`);
             const responseObject = yield buildDefinitionResponse.json();
             core.debug(`buildDefinitionResponse JSON response : ${JSON.stringify(responseObject)}`);
             if (buildDefinitionResponse.ok) {

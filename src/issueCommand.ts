@@ -214,7 +214,7 @@ export class IssueCommand implements IIssue {
 
     if (listPipelinesResponse.ok) {
       for (const build of responseObject.value) {
-        const pipeline = this.getBuildDefinition(build._links.self.href)
+        const pipeline = await this.getBuildDefinition(build._links.self.href)
         if (pipeline) {
           pipelinesList.push(pipeline)
         }
@@ -314,7 +314,7 @@ export class IssueCommand implements IIssue {
       headers: this.headers
     })
     core.debug(
-      `projectByNameResponse response: ${JSON.stringify(
+      `buildDefinitionResponse response: ${JSON.stringify(
         buildDefinitionResponse
       )}`
     )
