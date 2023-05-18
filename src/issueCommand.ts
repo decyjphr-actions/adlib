@@ -45,7 +45,7 @@ At any time, you can type the following commands in the issue comment to interac
 \`approve\` - Approve the request
 `
 const errorRewire = `Hello @{{author}}, 
-:warn: The rewire operation failed with this error:
+:warning: The rewire operation failed with this error:
 {{error}}
 
 Please review the details and retry if it is fixable.
@@ -229,10 +229,9 @@ export class IssueCommand implements IIssue {
   }): Promise<void> {
     core.debug(`${pipeline._links.self.href}&api-version=7.0`)
     core.debug(`data: ${JSON.stringify(pipeline)}`)
-    const updatePipelineUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.Destination_Project}/_apis/build/definitions/5--?api-version=7.0`
+    //const updatePipelineUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.Destination_Project}/_apis/build/definitions/5--?api-version=7.0`
     const updatePipelineResponse: Response = await nodeFetch(
-      //`${pipeline._links.self.href}&api-version=7.0`,
-      updatePipelineUrl,
+      `${pipeline._links.self.href}&api-version=7.0`,
       {
         method: 'PUT',
         headers: this.headers,
