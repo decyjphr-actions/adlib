@@ -214,7 +214,7 @@ export class IssueCommand implements IIssue {
       `updatePipelineResponse JSON response : ${JSON.stringify(responseObject)}`
     )
     if (updatePipelineResponse.ok) {
-      const updatePipelineSuccess = `Hello ${this.actor}, The pipeline ${pipeline.id}, ${pipeline.name} in your project ${this.adoInputs.Destination_Project} has been rewired\n`
+      const updatePipelineSuccess = `Hello @${this.actor}, The pipeline ${pipeline.id}, ${pipeline.name} in your project ${this.adoInputs.Destination_Project} has been rewired\n`
 
       core.debug(
         `Success ${updatePipelineSuccess} ${updatePipelineResponse.status}: ${updatePipelineResponse.statusText}`
@@ -229,7 +229,7 @@ export class IssueCommand implements IIssue {
         body: updatePipelineSuccess
       })
     } else {
-      const updatePipelineError = `Hello ${this.actor}, I am having trouble updating pipeline ${pipeline.id}, ${pipeline.name} in your project ${this.adoInputs.Destination_Project}. Please refer to the error below:\n`
+      const updatePipelineError = `Hello @${this.actor}, I am having trouble updating pipeline ${pipeline.id}, ${pipeline.name} in your project ${this.adoInputs.Destination_Project}. Please refer to the error below:\n`
 
       const error = `Error ${updatePipelineResponse.status}: ${updatePipelineResponse.statusText}`
       core.error(error)
@@ -467,7 +467,7 @@ ${pipelinesList.reduce((x: unknown, y: unknown) => {
     )
     if (shareServiceConnectionResponse.ok) {
       core.debug(`Creating issue comment with Share success message`)
-      const success = `Hello ${this.actor},
+      const success = `Hello @${this.actor},
 Service Connection ${this.adoInputs.adoSharedServiceConnection} was successfully shared to the project ${this.adoInputs.Destination_Project}`
       core.debug(success)
       await this.octokitClient.rest.issues.createComment({
@@ -479,8 +479,10 @@ Service Connection ${this.adoInputs.adoSharedServiceConnection} was successfully
       return responseObject
     } else {
       if (responseObject.typeKey === 'DuplicateServiceConnectionException') {
-        const error = `Hello ${this.actor}, 
-        :warning: ${responseObject.message}`
+        const error = `Hello @${this.actor}, 
+        :warning: ${responseObject.message}
+        
+        But it's ok, we can continue :smile:`
 
         core.error(error)
         await this.octokitClient.rest.issues.createComment({
@@ -489,7 +491,7 @@ Service Connection ${this.adoInputs.adoSharedServiceConnection} was successfully
         })
         return responseObject
       } else {
-        const error = `Hello ${this.actor}, 
+        const error = `Hello @${this.actor}, 
         :error: Error sharing service connection ${
           this.adoInputs.adoSharedServiceConnection
         } to project ${this.adoInputs.adoSharedProject}
