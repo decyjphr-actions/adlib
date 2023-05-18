@@ -307,8 +307,10 @@ class IssueCommand {
         return __awaiter(this, void 0, void 0, function* () {
             core.debug(`${pipeline._links.self.href}&api-version=7.0`);
             core.debug(`data: ${JSON.stringify(pipeline)}`);
-            //const updatePipelineUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.Destination_Project}/_apis/build/definitions/5?api-version=7.0`
-            const updatePipelineResponse = yield (0, node_fetch_1.default)(`${pipeline._links.self.href}000&api-version=7.0`, {
+            const updatePipelineUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.Destination_Project}/_apis/build/definitions/5--?api-version=7.0`;
+            const updatePipelineResponse = yield (0, node_fetch_1.default)(
+            //`${pipeline._links.self.href}&api-version=7.0`,
+            updatePipelineUrl, {
                 method: 'PUT',
                 headers: this.headers,
                 body: JSON.stringify(pipeline)
