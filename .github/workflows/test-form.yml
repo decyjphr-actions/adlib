@@ -53,5 +53,5 @@ jobs:
           ado_shared_service_connection: ${{ secrets.ADO_SHARED_SERVICE_CONNECTION }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           issue_body_json: ${{ steps.parse.outputs.payload }}
-          command: ${{ github.event.issue_comment.body }}
+          command: ${{ github.event.issue_comment.comment.body }}
 
