@@ -4,9 +4,9 @@ import {IssueCommand} from './issueCommand'
 import {IssueCommentEvent} from '@octokit/webhooks-definitions/schema'
 import {IIssue, AdoInputs, Commands} from './types'
 import {GitHub} from '@actions/github/lib/utils'
-import * as core from '@actions/core'
+//import * as core from '@actions/core'
 
-const acknowledgement = `Hello @{{author}}, I see you've commented on this issue. I'll let you know if everything is good to proceed.`
+//const acknowledgement = `Hello @{{author}}, I see you've commented on this issue. I'll let you know if everything is good to proceed.`
 export class IssueCommentCommand extends IssueCommand implements IIssue {
   issueComment: IssueCommentEvent
 
@@ -27,6 +27,7 @@ export class IssueCommentCommand extends IssueCommand implements IIssue {
     )
     this.issueComment = _issueComment
   }
+  /*
   async ack(): Promise<void> {
     core.debug(`ack called for ${JSON.stringify(this.issue)}`)
     const params = {
@@ -63,4 +64,5 @@ export class IssueCommentCommand extends IssueCommand implements IIssue {
       throw new Error(message)
     }
   }
+  */
 }
