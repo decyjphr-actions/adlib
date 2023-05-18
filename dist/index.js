@@ -455,7 +455,7 @@ Service Connection ${this.adoInputs.adoSharedServiceConnection} was successfully
             else {
                 const error = `Hello ${this.actor}, 
 :warning: Error sharing service connection ${this.adoInputs.adoSharedServiceConnection} to project ${this.adoInputs.adoSharedProject}
-${shareServiceConnectionResponse.status} ${shareServiceConnectionResponse.statusText}`;
+${shareServiceConnectionResponse.status} ${shareServiceConnectionResponse.statusText} ${JSON.stringify(responseObject)}`;
                 core.error(error);
                 yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: error }));
                 throw new Error(error);

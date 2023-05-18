@@ -448,8 +448,12 @@ Service Connection ${this.adoInputs.adoSharedServiceConnection} was successfully
       return responseObject
     } else {
       const error = `Hello ${this.actor}, 
-:warning: Error sharing service connection ${this.adoInputs.adoSharedServiceConnection} to project ${this.adoInputs.adoSharedProject}
-${shareServiceConnectionResponse.status} ${shareServiceConnectionResponse.statusText}`
+:warning: Error sharing service connection ${
+        this.adoInputs.adoSharedServiceConnection
+      } to project ${this.adoInputs.adoSharedProject}
+${shareServiceConnectionResponse.status} ${
+        shareServiceConnectionResponse.statusText
+      } ${JSON.stringify(responseObject)}`
       core.error(error)
       await this.octokitClient.rest.issues.createComment({
         ...params,
