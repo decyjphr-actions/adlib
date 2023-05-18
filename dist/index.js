@@ -276,10 +276,11 @@ class IssueCommand {
                 }
                 const pipelinesList = yield this.getADOPipelinesList();
                 if (pipelinesList) {
-                    core.debug(`Creating issue comment with GoodPipelinesList message`);
-                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: goodPipelinesList
-                            .replace('{{author}}', this.actor)
-                            .concat(`\n${JSON.stringify(pipelinesList, null, 2)}`) }));
+                    const body = goodPipelinesList
+                        .replace('{{author}}', this.actor)
+                        .concat(this.printPipelinesList(pipelinesList));
+                    core.debug(`Creating issue comment with GoodPipelinesList message ${body}`);
+                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body }));
                 }
                 else {
                     core.debug(`Creating issue comment with BadPipelinesList message`);
@@ -304,6 +305,16 @@ class IssueCommand {
 | id | name | type |
 | -- | -- | -- |
 | ${sharedServiceConnection.id} | ${sharedServiceConnection.name} | ${sharedServiceConnection.type} |
+`;
+    }
+    printPipelinesList(pipelinesList) {
+        return `
+| id | name | url |
+| -- | -- | -- |
+${pipelinesList.reduce((x, y) => {
+            return x.concat(`
+| ${y.id} | ${y.name} | ${y.url} |\n`);
+        })}
 `;
     }
     getADOPipelinesList() {

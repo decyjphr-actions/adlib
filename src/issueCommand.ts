@@ -174,12 +174,15 @@ export class IssueCommand implements IIssue {
       const pipelinesList = await this.getADOPipelinesList()
 
       if (pipelinesList) {
-        core.debug(`Creating issue comment with GoodPipelinesList message`)
+        const body = goodPipelinesList
+          .replace('{{author}}', this.actor)
+          .concat(this.printPipelinesList(pipelinesList))
+        core.debug(
+          `Creating issue comment with GoodPipelinesList message ${body}`
+        )
         await this.octokitClient.rest.issues.createComment({
           ...params,
-          body: goodPipelinesList
-            .replace('{{author}}', this.actor)
-            .concat(`\n${JSON.stringify(pipelinesList, null, 2)}`)
+          body
         })
       } else {
         core.debug(`Creating issue comment with BadPipelinesList message`)
@@ -213,7 +216,20 @@ export class IssueCommand implements IIssue {
 `
   }
 
-  private async getADOPipelinesList(): Promise<unknown> {
+  private printPipelinesList(pipelinesList: unknown[]): string {
+    return `
+| id | name | url |
+| -- | -- | -- |
+${pipelinesList.reduce((x: unknown, y: unknown) => {
+  return (x as string).concat(`
+| ${(y as {id: string}).id} | ${(y as {name: string}).name} | ${
+    (y as {url: string}).url
+  } |\n`)
+})}
+`
+  }
+
+  private async getADOPipelinesList(): Promise<unknown[] | null> {
     const listPipelinesUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.Destination_Project}/_apis/build/definitions?api-version=7.0`
     const pipelinesList = []
     const listPipelinesResponse: Response = await nodeFetch(listPipelinesUrl, {
