@@ -233,6 +233,7 @@ class IssueCommand {
                 const e = error;
                 const message = `${e} performing validate command`;
                 core.error(message);
+                throw new Error(message);
             }
         });
     }
@@ -697,6 +698,7 @@ var Commands;
     Commands["ack"] = "ack";
     Commands["secure"] = "secure";
     Commands["rewire"] = "rewire";
+    Commands["share"] = "share";
     Commands["comment"] = "comment";
     Commands["validate"] = "validate";
 })(Commands = exports.Commands || (exports.Commands = {}));

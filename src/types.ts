@@ -16,6 +16,7 @@ export enum Commands {
   ack = 'ack',
   secure = 'secure',
   rewire = 'rewire',
+  share = 'share',
   comment = 'comment',
   validate = 'validate'
 }

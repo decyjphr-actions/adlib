@@ -110,6 +110,7 @@ export class IssueCommand implements IIssue {
       const e = error as Error & {status: number}
       const message = `${e} performing validate command`
       core.error(message)
+      throw new Error(message)
     }
   }
 
