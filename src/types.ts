@@ -39,5 +39,6 @@ export interface IIssue {
   removeLabels(labels: string[]): void
   addLabels(labels: string[]): void
   ack(): void
+  rewire(): void
   execute(): void
 }

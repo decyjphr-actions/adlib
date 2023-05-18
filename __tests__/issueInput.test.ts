@@ -9,9 +9,7 @@ let githubScope: nock.Scope
 
 beforeAll(() => {
   process.env['INPUT_GITHUB_TOKEN'] = 'github_token'
-  //  process.env['INPUT_ADO_PAT'] = 'ado_pat'
-  process.env['INPUT_ADO_PAT'] =
-    'a4esptpslju6lkh72e3kldtrjmvj52lckabutsbbt443mamrr73q'
+  process.env['INPUT_ADO_PAT'] = 'ado_pat'
   process.env['INPUT_ADO_ORG'] = 'octoshift-demo'
   process.env['INPUT_ADO_SHARED_PROJECT'] = 'migration'
   process.env['INPUT_ADO_SHARED_SERVICE_CONNECTION'] = 'decyjphr-org'
@@ -65,7 +63,7 @@ test('Input Helper Ack test', async () => {
 })
 
 test('Input Helper Validate test', async () => {
-  process.env['INPUT_COMMAND'] = 'validate'
+  process.env['INPUT_COMMAND'] = 'rewire'
   const inputs: IIssue | undefined = inputHelper.getInputs()
 
   expect(inputs).toBeDefined()
@@ -74,7 +72,7 @@ test('Input Helper Validate test', async () => {
     const rewireInputs: IssueCommand = inputs
     await rewireInputs.execute()
   }
-}, 30000)
+})
 
 function initializeNock(): nock.Scope {
   // nock.disableNetConnect()

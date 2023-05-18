@@ -159,6 +159,7 @@ class IssueCommand {
         this.issue = _issue;
         this.repository = _repository;
         this.adoInputs = _adoInputs;
+        this.adoInputs.adoToken = Buffer.from(`:${this.adoInputs.adoToken}`).toString('base64');
         this.command = _command;
         this.octokitClient = _octokit;
         this.actor = _actor;
@@ -172,81 +173,40 @@ class IssueCommand {
             }
         });
     }
-    removeLabels(labels) {
-        throw new Error(`Method removeLabels(${labels}) not implemented.`);
-    }
-    addLabels(labels) {
-        throw new Error(`Method addLabels(${labels}) not implemented.`);
-    }
-    validate() {
+    rewire() {
         return __awaiter(this, void 0, void 0, function* () {
-            const creds = Buffer.from(`:${this.adoInputs.adoToken}`).toString('base64');
-            core.debug(`creds: ${creds}`);
-            const serviceConnectionByNameUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.adoSharedProject}/_apis/serviceendpoint/endpoints?endpointNames=${this.adoInputs.adoSharedServiceConnection}&api-version=7.0`;
-            const listPipelinesUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.Destination_Project}/_apis/build/definitions?api-version=7.0`;
-            const headers = [
-                ['Authorization', `Basic ${creds}`],
-                ['Accept', 'application/json;api-version=7.1-preview.4'],
-                ['Content-Type', 'application/json; charset=utf-8']
-            ];
             try {
                 const params = {
                     owner: this.repository.owner.login,
                     repo: this.repository.name,
                     issue_number: this.issue.number
                 };
-                const serviceConnectionByNameResponse = yield (0, node_fetch_1.default)(serviceConnectionByNameUrl, {
-                    method: 'GET',
-                    headers
-                });
-                core.debug(`response: ${JSON.stringify(serviceConnectionByNameResponse)}`);
-                const responseObject = yield serviceConnectionByNameResponse.json();
-                core.debug(`response: ${JSON.stringify(responseObject)}`);
-                if (serviceConnectionByNameResponse.ok && responseObject.count === 1) {
-                    core.debug(`Creating issue comment with goodValidation message`);
-                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: goodValidation
-                            .replace('{{author}}', this.actor)
-                            .concat(`\n${JSON.stringify(responseObject.value[0], null, 2)}`) }));
+                const sharedServiceConnection = yield this.getSharedServiceConnection();
+                if (sharedServiceConnection) {
+                    // Share this service connection to the user's project
+                    const shareServiceConnectionResponse = yield this.shareServiceConnection(sharedServiceConnection);
+                    core.debug(`Creating issue comment with Share success message`);
+                    const success = `Hello ${this.actor} Service Connection ${this.adoInputs.adoSharedServiceConnection} was successfully shared with the project ${this.adoInputs.Destination_Project}}`;
+                    core.debug(success);
+                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: success.concat(`\n${JSON.stringify(shareServiceConnectionResponse, null, 2)}`) }));
                 }
                 else {
-                    core.debug(`Creating issue comment with badValidation message`);
-                    const error = `Service Connection ${this.adoInputs.adoSharedServiceConnection} not found in project ${this.adoInputs.adoSharedProject}. Error: ${serviceConnectionByNameResponse.statusText}`;
+                    core.debug(`Creating issue comment with BadValidation message`);
+                    const error = `Service Connection ${this.adoInputs.adoSharedServiceConnection} not found in project ${this.adoInputs.adoSharedProject}}`;
                     core.error(error);
                     yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: badValidation
                             .replace('{{author}}', this.actor)
                             .concat(`\n${error}`) }));
                 }
-            }
-            catch (error) {
-                const e = error;
-                const message = `${e} performing validate command`;
-                core.error(message);
-                throw new Error(message);
-            }
-            try {
-                const params = {
-                    owner: this.repository.owner.login,
-                    repo: this.repository.name,
-                    issue_number: this.issue.number
-                };
-                const listPipelinesResponse = yield (0, node_fetch_1.default)(listPipelinesUrl, {
-                    method: 'GET',
-                    headers
-                });
-                core.debug(`response: ${JSON.stringify(listPipelinesResponse)}`);
-                core.debug(`listPipelinesResponse.ok = ${listPipelinesResponse.ok}`);
-                core.debug(`listPipelinesResponse.status = ${listPipelinesResponse.status}`);
-                core.debug(`listPipelinesResponse.statusText = ${listPipelinesResponse.statusText}`);
-                const responseObject = yield listPipelinesResponse.json();
-                core.debug(`response: ${JSON.stringify(responseObject)}`);
-                if (listPipelinesResponse.ok) {
-                    core.debug(`Creating issue comment with goodPipelinesList message`);
+                const pipelinesList = yield this.getADOPipelinesList();
+                if (pipelinesList) {
+                    core.debug(`Creating issue comment with GoodPipelinesList message`);
                     yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: goodPipelinesList
                             .replace('{{author}}', this.actor)
-                            .concat(`\n${JSON.stringify(responseObject.value[0], null, 2)}`) }));
+                            .concat(`\n${JSON.stringify(pipelinesList, null, 2)}`) }));
                 }
                 else {
-                    core.debug(`Creating issue comment with badPipelinesList message`);
+                    core.debug(`Creating issue comment with BadPipelinesList message`);
                     const error = `No pipelines found in project ${this.adoInputs.Destination_Project}. Please check the name of the project and resubmit the issue`;
                     core.error(error);
                     yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: badPipelinesList
@@ -260,6 +220,182 @@ class IssueCommand {
                 const message = `${e} performing validate command`;
                 core.error(message);
                 throw new Error(message);
+            }
+        });
+    }
+    removeLabels(labels) {
+        throw new Error(`Method removeLabels(${labels}) not implemented.`);
+    }
+    addLabels(labels) {
+        throw new Error(`Method addLabels(${labels}) not implemented.`);
+    }
+    validate() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const params = {
+                    owner: this.repository.owner.login,
+                    repo: this.repository.name,
+                    issue_number: this.issue.number
+                };
+                const sharedServiceConnection = yield this.getSharedServiceConnection();
+                if (sharedServiceConnection) {
+                    core.debug(`Creating issue comment with GoodValidation message`);
+                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: goodValidation
+                            .replace('{{author}}', this.actor)
+                            .concat(`\n${JSON.stringify(sharedServiceConnection, null, 2)}`) }));
+                }
+                else {
+                    core.debug(`Creating issue comment with BadValidation message`);
+                    const error = `Service Connection ${this.adoInputs.adoSharedServiceConnection} not found in project ${this.adoInputs.adoSharedProject}}`;
+                    core.error(error);
+                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: badValidation
+                            .replace('{{author}}', this.actor)
+                            .concat(`\n${error}`) }));
+                }
+                const pipelinesList = yield this.getADOPipelinesList();
+                if (pipelinesList) {
+                    core.debug(`Creating issue comment with GoodPipelinesList message`);
+                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: goodPipelinesList
+                            .replace('{{author}}', this.actor)
+                            .concat(`\n${JSON.stringify(pipelinesList, null, 2)}`) }));
+                }
+                else {
+                    core.debug(`Creating issue comment with BadPipelinesList message`);
+                    const error = `No pipelines found in project ${this.adoInputs.Destination_Project}. Please check the name of the project and resubmit the issue`;
+                    core.error(error);
+                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: badPipelinesList
+                            .replace('{{author}}', this.actor)
+                            .replace('{{ado_project}}', this.adoInputs.Destination_Project)
+                            .concat(`\n${error}`) }));
+                }
+            }
+            catch (error) {
+                const e = error;
+                const message = `${e} performing validate command`;
+                core.error(message);
+                throw new Error(message);
+            }
+        });
+    }
+    getADOPipelinesList() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const listPipelinesUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.Destination_Project}/_apis/build/definitions?api-version=7.0`;
+            const headers = [
+                ['Authorization', `Basic ${this.adoInputs.adoToken}`],
+                ['Accept', 'application/json;api-version=7.1-preview.4'],
+                ['Content-Type', 'application/json; charset=utf-8']
+            ];
+            const listPipelinesResponse = yield (0, node_fetch_1.default)(listPipelinesUrl, {
+                method: 'GET',
+                headers
+            });
+            core.debug(`response: ${JSON.stringify(listPipelinesResponse)}`);
+            core.debug(`listPipelinesResponse.ok = ${listPipelinesResponse.ok}`);
+            core.debug(`listPipelinesResponse.status = ${listPipelinesResponse.status}`);
+            core.debug(`listPipelinesResponse.statusText = ${listPipelinesResponse.statusText}`);
+            const responseObject = yield listPipelinesResponse.json();
+            core.debug(`response: ${JSON.stringify(responseObject)}`);
+            if (listPipelinesResponse.ok) {
+                return responseObject.value;
+            }
+            else {
+                const error = `No pipelines found in project ${this.adoInputs.Destination_Project}. Please check the name of the project and resubmit the issue`;
+                core.error(error);
+                return null;
+            }
+        });
+    }
+    shareServiceConnection(sharedServiceConnection) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const destinationProject = yield this.getDestinationProject();
+            core.debug(`destinationProject: ${JSON.stringify(destinationProject)}`);
+            if (destinationProject) {
+                core.debug(`${JSON.stringify(destinationProject)} found`);
+            }
+            const headers = [
+                ['Authorization', `Basic ${this.adoInputs.adoToken}`],
+                ['Accept', 'application/json;api-version=7.0'],
+                ['Content-Type', 'application/json']
+            ];
+            const data = [
+                {
+                    name: `${this.adoInputs.adoOrg}-${this.adoInputs.Destination_Project}`,
+                    projectReference: {
+                        id: `${destinationProject === null || destinationProject === void 0 ? void 0 : destinationProject.id}`,
+                        name: `${this.adoInputs.Destination_Project}`
+                    }
+                }
+            ];
+            core.debug(`data: ${JSON.stringify(data)}`);
+            const shareUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/_apis/serviceendpoint/endpoints/${sharedServiceConnection.id}?api-version=7.0`;
+            const shareServiceConnectionResponse = yield (0, node_fetch_1.default)(shareUrl, {
+                method: 'PATCH',
+                headers,
+                body: JSON.stringify(data)
+            });
+            core.debug(`shareServiceConnectionResponse response: ${JSON.stringify(shareServiceConnectionResponse)}`);
+            core.debug(`shareServiceConnectionResponse.ok = ${shareServiceConnectionResponse.ok}`);
+            core.debug(`shareServiceConnectionResponse.status = ${shareServiceConnectionResponse.status}`);
+            core.debug(`listPipelinesResponse.statusText = ${shareServiceConnectionResponse.statusText}`);
+            const responseObject = yield shareServiceConnectionResponse.json();
+            core.debug(`shareServiceConnectionResponse JSON response : ${JSON.stringify(responseObject)}`);
+            if (shareServiceConnectionResponse.ok) {
+                return responseObject;
+            }
+            else {
+                const error = `Error sharing service connection ${this.adoInputs.adoSharedServiceConnection} in project ${this.adoInputs.adoSharedProject}`;
+                core.error(error);
+                return null;
+            }
+        });
+    }
+    getDestinationProject() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const projectByNameUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/_apis/projects/${this.adoInputs.Destination_Project}?api-version=7.0`;
+            const headers = [
+                ['Authorization', `Basic ${this.adoInputs.adoToken}`],
+                ['Accept', 'application/json;api-version=7.0'],
+                ['Content-Type', 'application/json; charset=utf-8']
+            ];
+            const projectByNameResponse = yield (0, node_fetch_1.default)(projectByNameUrl, {
+                method: 'GET',
+                headers
+            });
+            core.debug(`projectByNameResponse response: ${JSON.stringify(projectByNameResponse)}`);
+            const responseObject = yield projectByNameResponse.json();
+            core.debug(`projectByNameResponse JSON response : ${JSON.stringify(responseObject)}`);
+            if (projectByNameResponse.ok) {
+                return responseObject;
+            }
+            else {
+                const error = `Project  ${this.adoInputs.Destination_Project} not found in org ${this.adoInputs.adoOrg}. Error: ${projectByNameResponse.statusText}`;
+                core.error(error);
+                return null;
+            }
+        });
+    }
+    getSharedServiceConnection() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const serviceConnectionByNameUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.adoSharedProject}/_apis/serviceendpoint/endpoints?endpointNames=${this.adoInputs.adoSharedServiceConnection}&api-version=7.0`;
+            const headers = [
+                ['Authorization', `Basic ${this.adoInputs.adoToken}`],
+                ['Accept', 'application/json;api-version=7.0'],
+                ['Content-Type', 'application/json; charset=utf-8']
+            ];
+            const serviceConnectionByNameResponse = yield (0, node_fetch_1.default)(serviceConnectionByNameUrl, {
+                method: 'GET',
+                headers
+            });
+            core.debug(`serviceConnectionByNameResponse response: ${JSON.stringify(serviceConnectionByNameResponse)}`);
+            const responseObject = yield serviceConnectionByNameResponse.json();
+            core.debug(`serviceConnectionByName JSON response : ${JSON.stringify(responseObject)}`);
+            if (serviceConnectionByNameResponse.ok && responseObject.count === 1) {
+                return responseObject.value[0];
+            }
+            else {
+                const error = `Service Connection ${this.adoInputs.adoSharedServiceConnection} not found in project ${this.adoInputs.adoSharedProject}. Error: ${serviceConnectionByNameResponse.statusText}`;
+                core.error(error);
+                return null;
             }
         });
     }

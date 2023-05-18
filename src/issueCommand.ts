@@ -30,6 +30,9 @@ export class IssueCommand implements IIssue {
     this.issue = _issue
     this.repository = _repository
     this.adoInputs = _adoInputs
+    this.adoInputs.adoToken = Buffer.from(
+      `:${this.adoInputs.adoToken}`
+    ).toString('base64')
     this.command = _command
     this.octokitClient = _octokit
     this.actor = _actor
@@ -43,53 +46,30 @@ export class IssueCommand implements IIssue {
     }
   }
 
-  removeLabels(labels: string[]): void {
-    throw new Error(`Method removeLabels(${labels}) not implemented.`)
-  }
-
-  addLabels(labels: string[]): void {
-    throw new Error(`Method addLabels(${labels}) not implemented.`)
-  }
-
-  async validate(): Promise<void> {
-    const creds = Buffer.from(`:${this.adoInputs.adoToken}`).toString('base64')
-    core.debug(`creds: ${creds}`)
-    const serviceConnectionByNameUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.adoSharedProject}/_apis/serviceendpoint/endpoints?endpointNames=${this.adoInputs.adoSharedServiceConnection}&api-version=7.0`
-
-    const listPipelinesUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.Destination_Project}/_apis/build/definitions?api-version=7.0`
-
-    const headers = [
-      ['Authorization', `Basic ${creds}`],
-      ['Accept', 'application/json;api-version=7.1-preview.4'],
-      ['Content-Type', 'application/json; charset=utf-8']
-    ]
+  async rewire(): Promise<void> {
     try {
       const params = {
         owner: this.repository.owner.login,
         repo: this.repository.name,
         issue_number: this.issue.number
       }
-      const serviceConnectionByNameResponse: Response = await nodeFetch(
-        serviceConnectionByNameUrl,
-        {
-          method: 'GET',
-          headers
-        }
-      )
-      core.debug(`response: ${JSON.stringify(serviceConnectionByNameResponse)}`)
-      const responseObject = await serviceConnectionByNameResponse.json()
-      core.debug(`response: ${JSON.stringify(responseObject)}`)
-      if (serviceConnectionByNameResponse.ok && responseObject.count === 1) {
-        core.debug(`Creating issue comment with goodValidation message`)
+      const sharedServiceConnection = await this.getSharedServiceConnection()
+      if (sharedServiceConnection) {
+        // Share this service connection to the user's project
+        const shareServiceConnectionResponse =
+          await this.shareServiceConnection(sharedServiceConnection)
+        core.debug(`Creating issue comment with Share success message`)
+        const success = `Hello ${this.actor} Service Connection ${this.adoInputs.adoSharedServiceConnection} was successfully shared with the project ${this.adoInputs.Destination_Project}}`
+        core.debug(success)
         await this.octokitClient.rest.issues.createComment({
           ...params,
-          body: goodValidation
-            .replace('{{author}}', this.actor)
-            .concat(`\n${JSON.stringify(responseObject.value[0], null, 2)}`)
+          body: success.concat(
+            `\n${JSON.stringify(shareServiceConnectionResponse, null, 2)}`
+          )
         })
       } else {
-        core.debug(`Creating issue comment with badValidation message`)
-        const error = `Service Connection ${this.adoInputs.adoSharedServiceConnection} not found in project ${this.adoInputs.adoSharedProject}. Error: ${serviceConnectionByNameResponse.statusText}`
+        core.debug(`Creating issue comment with BadValidation message`)
+        const error = `Service Connection ${this.adoInputs.adoSharedServiceConnection} not found in project ${this.adoInputs.adoSharedProject}}`
         core.error(error)
         await this.octokitClient.rest.issues.createComment({
           ...params,
@@ -98,47 +78,19 @@ export class IssueCommand implements IIssue {
             .concat(`\n${error}`)
         })
       }
-    } catch (error) {
-      const e = error as Error & {status: number}
-      const message = `${e} performing validate command`
-      core.error(message)
-      throw new Error(message)
-    }
 
-    try {
-      const params = {
-        owner: this.repository.owner.login,
-        repo: this.repository.name,
-        issue_number: this.issue.number
-      }
-      const listPipelinesResponse: Response = await nodeFetch(
-        listPipelinesUrl,
-        {
-          method: 'GET',
-          headers
-        }
-      )
-      core.debug(`response: ${JSON.stringify(listPipelinesResponse)}`)
-      core.debug(`listPipelinesResponse.ok = ${listPipelinesResponse.ok}`)
-      core.debug(
-        `listPipelinesResponse.status = ${listPipelinesResponse.status}`
-      )
-      core.debug(
-        `listPipelinesResponse.statusText = ${listPipelinesResponse.statusText}`
-      )
-      const responseObject = await listPipelinesResponse.json()
-      core.debug(`response: ${JSON.stringify(responseObject)}`)
+      const pipelinesList = await this.getADOPipelinesList()
 
-      if (listPipelinesResponse.ok) {
-        core.debug(`Creating issue comment with goodPipelinesList message`)
+      if (pipelinesList) {
+        core.debug(`Creating issue comment with GoodPipelinesList message`)
         await this.octokitClient.rest.issues.createComment({
           ...params,
           body: goodPipelinesList
             .replace('{{author}}', this.actor)
-            .concat(`\n${JSON.stringify(responseObject.value[0], null, 2)}`)
+            .concat(`\n${JSON.stringify(pipelinesList, null, 2)}`)
         })
       } else {
-        core.debug(`Creating issue comment with badPipelinesList message`)
+        core.debug(`Creating issue comment with BadPipelinesList message`)
         const error = `No pipelines found in project ${this.adoInputs.Destination_Project}. Please check the name of the project and resubmit the issue`
         core.error(error)
         await this.octokitClient.rest.issues.createComment({
@@ -154,6 +106,228 @@ export class IssueCommand implements IIssue {
       const message = `${e} performing validate command`
       core.error(message)
       throw new Error(message)
+    }
+  }
+
+  removeLabels(labels: string[]): void {
+    throw new Error(`Method removeLabels(${labels}) not implemented.`)
+  }
+
+  addLabels(labels: string[]): void {
+    throw new Error(`Method addLabels(${labels}) not implemented.`)
+  }
+
+  async validate(): Promise<void> {
+    try {
+      const params = {
+        owner: this.repository.owner.login,
+        repo: this.repository.name,
+        issue_number: this.issue.number
+      }
+      const sharedServiceConnection = await this.getSharedServiceConnection()
+      if (sharedServiceConnection) {
+        core.debug(`Creating issue comment with GoodValidation message`)
+        await this.octokitClient.rest.issues.createComment({
+          ...params,
+          body: goodValidation
+            .replace('{{author}}', this.actor)
+            .concat(`\n${JSON.stringify(sharedServiceConnection, null, 2)}`)
+        })
+      } else {
+        core.debug(`Creating issue comment with BadValidation message`)
+        const error = `Service Connection ${this.adoInputs.adoSharedServiceConnection} not found in project ${this.adoInputs.adoSharedProject}}`
+        core.error(error)
+        await this.octokitClient.rest.issues.createComment({
+          ...params,
+          body: badValidation
+            .replace('{{author}}', this.actor)
+            .concat(`\n${error}`)
+        })
+      }
+
+      const pipelinesList = await this.getADOPipelinesList()
+
+      if (pipelinesList) {
+        core.debug(`Creating issue comment with GoodPipelinesList message`)
+        await this.octokitClient.rest.issues.createComment({
+          ...params,
+          body: goodPipelinesList
+            .replace('{{author}}', this.actor)
+            .concat(`\n${JSON.stringify(pipelinesList, null, 2)}`)
+        })
+      } else {
+        core.debug(`Creating issue comment with BadPipelinesList message`)
+        const error = `No pipelines found in project ${this.adoInputs.Destination_Project}. Please check the name of the project and resubmit the issue`
+        core.error(error)
+        await this.octokitClient.rest.issues.createComment({
+          ...params,
+          body: badPipelinesList
+            .replace('{{author}}', this.actor)
+            .replace('{{ado_project}}', this.adoInputs.Destination_Project)
+            .concat(`\n${error}`)
+        })
+      }
+    } catch (error) {
+      const e = error as Error & {status: number}
+      const message = `${e} performing validate command`
+      core.error(message)
+      throw new Error(message)
+    }
+  }
+
+  private async getADOPipelinesList(): Promise<unknown> {
+    const listPipelinesUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.Destination_Project}/_apis/build/definitions?api-version=7.0`
+
+    const headers = [
+      ['Authorization', `Basic ${this.adoInputs.adoToken}`],
+      ['Accept', 'application/json;api-version=7.1-preview.4'],
+      ['Content-Type', 'application/json; charset=utf-8']
+    ]
+
+    const listPipelinesResponse: Response = await nodeFetch(listPipelinesUrl, {
+      method: 'GET',
+      headers
+    })
+    core.debug(`response: ${JSON.stringify(listPipelinesResponse)}`)
+    core.debug(`listPipelinesResponse.ok = ${listPipelinesResponse.ok}`)
+    core.debug(`listPipelinesResponse.status = ${listPipelinesResponse.status}`)
+    core.debug(
+      `listPipelinesResponse.statusText = ${listPipelinesResponse.statusText}`
+    )
+    const responseObject = await listPipelinesResponse.json()
+    core.debug(`response: ${JSON.stringify(responseObject)}`)
+
+    if (listPipelinesResponse.ok) {
+      return responseObject.value
+    } else {
+      const error = `No pipelines found in project ${this.adoInputs.Destination_Project}. Please check the name of the project and resubmit the issue`
+      core.error(error)
+      return null
+    }
+  }
+
+  async shareServiceConnection(sharedServiceConnection: {
+    id?: string
+  }): Promise<unknown> {
+    const destinationProject: {id: string} | null =
+      await this.getDestinationProject()
+    core.debug(`destinationProject: ${JSON.stringify(destinationProject)}`)
+    if (destinationProject) {
+      core.debug(`${JSON.stringify(destinationProject)} found`)
+    }
+
+    const headers = [
+      ['Authorization', `Basic ${this.adoInputs.adoToken}`],
+      ['Accept', 'application/json;api-version=7.0'],
+      ['Content-Type', 'application/json']
+    ]
+    const data = [
+      {
+        name: `${this.adoInputs.adoOrg}-${this.adoInputs.Destination_Project}`,
+        projectReference: {
+          id: `${destinationProject?.id as string}`,
+          name: `${this.adoInputs.Destination_Project}`
+        }
+      }
+    ]
+
+    core.debug(`data: ${JSON.stringify(data)}`)
+    const shareUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/_apis/serviceendpoint/endpoints/${sharedServiceConnection.id}?api-version=7.0`
+    const shareServiceConnectionResponse: Response = await nodeFetch(shareUrl, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify(data)
+    })
+    core.debug(
+      `shareServiceConnectionResponse response: ${JSON.stringify(
+        shareServiceConnectionResponse
+      )}`
+    )
+    core.debug(
+      `shareServiceConnectionResponse.ok = ${shareServiceConnectionResponse.ok}`
+    )
+    core.debug(
+      `shareServiceConnectionResponse.status = ${shareServiceConnectionResponse.status}`
+    )
+    core.debug(
+      `listPipelinesResponse.statusText = ${shareServiceConnectionResponse.statusText}`
+    )
+    const responseObject = await shareServiceConnectionResponse.json()
+    core.debug(
+      `shareServiceConnectionResponse JSON response : ${JSON.stringify(
+        responseObject
+      )}`
+    )
+    if (shareServiceConnectionResponse.ok) {
+      return responseObject
+    } else {
+      const error = `Error sharing service connection ${this.adoInputs.adoSharedServiceConnection} in project ${this.adoInputs.adoSharedProject}`
+      core.error(error)
+      return null
+    }
+  }
+
+  private async getDestinationProject(): Promise<{id: string} | null> {
+    const projectByNameUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/_apis/projects/${this.adoInputs.Destination_Project}?api-version=7.0`
+    const headers = [
+      ['Authorization', `Basic ${this.adoInputs.adoToken}`],
+      ['Accept', 'application/json;api-version=7.0'],
+      ['Content-Type', 'application/json; charset=utf-8']
+    ]
+
+    const projectByNameResponse: Response = await nodeFetch(projectByNameUrl, {
+      method: 'GET',
+      headers
+    })
+    core.debug(
+      `projectByNameResponse response: ${JSON.stringify(projectByNameResponse)}`
+    )
+    const responseObject = await projectByNameResponse.json()
+    core.debug(
+      `projectByNameResponse JSON response : ${JSON.stringify(responseObject)}`
+    )
+    if (projectByNameResponse.ok) {
+      return responseObject
+    } else {
+      const error = `Project  ${this.adoInputs.Destination_Project} not found in org ${this.adoInputs.adoOrg}. Error: ${projectByNameResponse.statusText}`
+      core.error(error)
+      return null
+    }
+  }
+
+  private async getSharedServiceConnection(): Promise<unknown> {
+    const serviceConnectionByNameUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.adoSharedProject}/_apis/serviceendpoint/endpoints?endpointNames=${this.adoInputs.adoSharedServiceConnection}&api-version=7.0`
+
+    const headers = [
+      ['Authorization', `Basic ${this.adoInputs.adoToken}`],
+      ['Accept', 'application/json;api-version=7.0'],
+      ['Content-Type', 'application/json; charset=utf-8']
+    ]
+
+    const serviceConnectionByNameResponse: Response = await nodeFetch(
+      serviceConnectionByNameUrl,
+      {
+        method: 'GET',
+        headers
+      }
+    )
+    core.debug(
+      `serviceConnectionByNameResponse response: ${JSON.stringify(
+        serviceConnectionByNameResponse
+      )}`
+    )
+    const responseObject = await serviceConnectionByNameResponse.json()
+    core.debug(
+      `serviceConnectionByName JSON response : ${JSON.stringify(
+        responseObject
+      )}`
+    )
+    if (serviceConnectionByNameResponse.ok && responseObject.count === 1) {
+      return responseObject.value[0]
+    } else {
+      const error = `Service Connection ${this.adoInputs.adoSharedServiceConnection} not found in project ${this.adoInputs.adoSharedProject}. Error: ${serviceConnectionByNameResponse.statusText}`
+      core.error(error)
+      return null
     }
   }
 
