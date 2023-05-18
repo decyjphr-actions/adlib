@@ -79,6 +79,10 @@ export class IssueCommand implements IIssue {
     }
   }
 
+  async share(): Promise<void> {
+    throw new Error('Method not implemented.')
+  }
+
   async rewire(): Promise<void> {
     try {
       const params = {
@@ -93,19 +97,9 @@ export class IssueCommand implements IIssue {
       } | null = await this.getSharedServiceConnection()
       if (sharedServiceConnection) {
         // Share this service connection to the user's project
-        const shareServiceConnectionResponse =
-          await this.shareServiceConnection(sharedServiceConnection)
-        core.debug(`Creating issue comment with Share success message`)
-        const success = `Hello ${this.actor} Service Connection ${this.adoInputs.adoSharedServiceConnection} was successfully shared with the project ${this.adoInputs.Destination_Project}}`
-        core.debug(success)
-        await this.octokitClient.rest.issues.createComment({
-          ...params,
-          body: success.concat(
-            `\n${JSON.stringify(shareServiceConnectionResponse, null, 2)}`
-          )
-        })
+        await this.shareServiceConnection(sharedServiceConnection)
       } else {
-        core.debug(`Creating issue comment with BadValidation message`)
+        core.debug(`Creating issue comment with Share failed message`)
         const error = `Service Connection ${this.adoInputs.adoSharedServiceConnection} not found in project ${this.adoInputs.adoSharedProject}}`
         core.error(error)
         await this.octokitClient.rest.issues.createComment({
@@ -391,6 +385,11 @@ ${pipelinesList.reduce((x: unknown, y: unknown) => {
   async shareServiceConnection(sharedServiceConnection: {
     id?: string
   }): Promise<unknown> {
+    const params = {
+      owner: this.repository.owner.login,
+      repo: this.repository.name,
+      issue_number: this.issue.number
+    }
     const destinationProject: {id: string} | null =
       await this.getDestinationProject()
     core.debug(`destinationProject: ${JSON.stringify(destinationProject)}`)
@@ -436,11 +435,27 @@ ${pipelinesList.reduce((x: unknown, y: unknown) => {
       )}`
     )
     if (shareServiceConnectionResponse.ok) {
+      core.debug(`Creating issue comment with Share success message`)
+      const success = `Hello ${this.actor},
+Service Connection ${this.adoInputs.adoSharedServiceConnection} was successfully shared to the project ${this.adoInputs.Destination_Project}`
+      core.debug(success)
+      await this.octokitClient.rest.issues.createComment({
+        ...params,
+        body: success.concat(
+          `\n${JSON.stringify(shareServiceConnectionResponse, null, 2)}`
+        )
+      })
       return responseObject
     } else {
-      const error = `Error sharing service connection ${this.adoInputs.adoSharedServiceConnection} in project ${this.adoInputs.adoSharedProject}`
+      const error = `Hello ${this.actor}, 
+:warning: Error sharing service connection ${this.adoInputs.adoSharedServiceConnection} to project ${this.adoInputs.adoSharedProject}
+${shareServiceConnectionResponse.status} ${shareServiceConnectionResponse.statusText}`
       core.error(error)
-      return null
+      await this.octokitClient.rest.issues.createComment({
+        ...params,
+        body: error
+      })
+      throw new Error(error)
     }
   }
 

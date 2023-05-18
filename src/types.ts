@@ -41,4 +41,5 @@ export interface IIssue {
   ack(): void
   rewire(): void
   execute(): void
+  share(): void
 }
