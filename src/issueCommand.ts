@@ -19,10 +19,20 @@ At any time, you can type the following commands in the issue comment to interac
 
 **Type \`validate\` to get started.**
 `
-const goodValidation = `Hello @{{author}}, I will be using the following Service Connection to rewire your ADO pipelines:\n`
-const badValidation = `Hello @{{author}}, I am having trouble with your request. Please see the error below:\n`
+const goodSharedServiceConnection = `Hello @{{author}}, I will be using the following Service Connection to rewire your ADO pipelines:\n`
+const badSharedServiceConnection = `Hello @{{author}}, I am having trouble with validating the shared Service Connection request. Please see the error below:\n`
 const goodPipelinesList = `Hello @{{author}}, I found the following pipelines in your project that will be rewired:\n`
 const badPipelinesList = `Hello @{{author}}, I am having trouble retrieving pipelines from your project {{ado_project}}. Please refer to the error below:\n`
+const goodValidation = `Hello @{{author}}, 
+Everything looks good to proceed with rewiring your ADO Pipelines.
+
+**Type \`rewire\` to start the rewire process.**
+`
+const badValidation = `Hello @{{author}}, 
+Unfortunately, I am unable to validate that everything is good to go.
+
+You can try to \`validate\` again or \`ack\` to acknowledge the request.
+`
 
 export class IssueCommand implements IIssue {
   repository: Repository
@@ -100,7 +110,7 @@ export class IssueCommand implements IIssue {
         core.error(error)
         await this.octokitClient.rest.issues.createComment({
           ...params,
-          body: badValidation
+          body: badSharedServiceConnection
             .replace('{{author}}', this.actor)
             .concat(`\n${error}`)
         })
@@ -219,6 +229,8 @@ export class IssueCommand implements IIssue {
   }
 
   async validate(): Promise<void> {
+    let validationSuccess = true
+
     try {
       const params = {
         owner: this.repository.owner.login,
@@ -231,7 +243,7 @@ export class IssueCommand implements IIssue {
         type: string
       } | null = await this.getSharedServiceConnection()
       if (sharedServiceConnection) {
-        const body = goodValidation
+        const body = goodSharedServiceConnection
           .replace('{{author}}', this.actor)
           .concat(this.printSharedServiceConnection(sharedServiceConnection))
         core.debug(`Creating issue comment with GoodValidation message ${body}`)
@@ -245,10 +257,11 @@ export class IssueCommand implements IIssue {
         core.error(error)
         await this.octokitClient.rest.issues.createComment({
           ...params,
-          body: badValidation
+          body: badSharedServiceConnection
             .replace('{{author}}', this.actor)
             .concat(`\n${error}`)
         })
+        validationSuccess = false
       }
 
       const pipelinesList = await this.getADOPipelinesList()
@@ -274,6 +287,19 @@ export class IssueCommand implements IIssue {
             .replace('{{author}}', this.actor)
             .replace('{{ado_project}}', this.adoInputs.Destination_Project)
             .concat(`\n${error}`)
+        })
+        validationSuccess = false
+      }
+
+      if (validationSuccess) {
+        await this.octokitClient.rest.issues.createComment({
+          ...params,
+          body: goodValidation.replace('{{author}}', this.actor)
+        })
+      } else {
+        await this.octokitClient.rest.issues.createComment({
+          ...params,
+          body: badValidation.replace('{{author}}', this.actor)
         })
       }
     } catch (error) {
