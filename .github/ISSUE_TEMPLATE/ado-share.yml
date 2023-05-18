@@ -9,11 +9,12 @@ body:
 - type: markdown
   attributes:
     value: |
-      This is an issue to Rewire ADO pipelines in an ADO project to use a Standard GitHub App service connection.</br></br>
+      This is an issue to Rewire ADO pipelines in an ADO project to use a Standard GitHub App service connection.
+      
+      If you have any questions, please reach out to @decyjphr.
 
-      If you have any questions, please reach out to @decyjphr.</br></br>
-
-      Once the issue is created, at any time, you can type the following commands in the issue comment to interact with me:</br>
+      Once the issue is created, at any time, you can type the following commands as issue comment to interact:
+      
       `ack` - Acknowledge the request
       `validate` - Validate the request
       `share` - Share the Shared Service Connection
