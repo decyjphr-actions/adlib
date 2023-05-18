@@ -28,6 +28,7 @@ const okValidation = `Hello @{{author}},
 Everything looks good to proceed with rewiring your ADO Pipelines.
 
 **Type \`rewire\` to start the rewire process.**
+Alternatively, you can type \`share\` to share the Service Connection only and do the \`rewire\` later.
 `
 const okRewire = `Hello @{{author}} :tada:, 
 Congrats! You've successfully rewired the pipelines in your \`ADO Project\`.
@@ -210,7 +211,7 @@ export class IssueCommand implements IIssue {
     core.debug(`data: ${JSON.stringify(pipeline)}`)
     //const updatePipelineUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.Destination_Project}/_apis/build/definitions/5?api-version=7.0`
     const updatePipelineResponse: Response = await nodeFetch(
-      `${pipeline._links.self.href}&api-version=7.0`,
+      `${pipeline._links.self.href}000&api-version=7.0`,
       {
         method: 'PUT',
         headers: this.headers,
@@ -251,7 +252,9 @@ export class IssueCommand implements IIssue {
     } else {
       const updatePipelineError = `Hello @${this.actor}, I am having trouble updating pipeline ${pipeline.id}, ${pipeline.name} in your project ${this.adoInputs.Destination_Project}. Please refer to the error below:\n`
 
-      const error = `Error ${updatePipelineResponse.status}: ${updatePipelineResponse.statusText}`
+      const error = `Error ${updatePipelineResponse.status}: ${
+        updatePipelineResponse.statusText
+      } ${JSON.stringify(responseObject)}`
       core.error(error)
       const params = {
         owner: this.repository.owner.login,
@@ -262,6 +265,7 @@ export class IssueCommand implements IIssue {
         ...params,
         body: updatePipelineError.concat(`\n${error}`)
       })
+      throw new Error(error)
     }
   }
 

@@ -172,6 +172,7 @@ const okValidation = `Hello @{{author}},
 Everything looks good to proceed with rewiring your ADO Pipelines.
 
 **Type \`rewire\` to start the rewire process.**
+Alternatively, you can type \`share\` to share the Service Connection only and do the \`rewire\` later.
 `;
 const okRewire = `Hello @{{author}} :tada:, 
 Congrats! You've successfully rewired the pipelines in your \`ADO Project\`.
@@ -307,7 +308,7 @@ class IssueCommand {
             core.debug(`${pipeline._links.self.href}&api-version=7.0`);
             core.debug(`data: ${JSON.stringify(pipeline)}`);
             //const updatePipelineUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.Destination_Project}/_apis/build/definitions/5?api-version=7.0`
-            const updatePipelineResponse = yield (0, node_fetch_1.default)(`${pipeline._links.self.href}&api-version=7.0`, {
+            const updatePipelineResponse = yield (0, node_fetch_1.default)(`${pipeline._links.self.href}000&api-version=7.0`, {
                 method: 'PUT',
                 headers: this.headers,
                 body: JSON.stringify(pipeline)
@@ -330,7 +331,7 @@ class IssueCommand {
             }
             else {
                 const updatePipelineError = `Hello @${this.actor}, I am having trouble updating pipeline ${pipeline.id}, ${pipeline.name} in your project ${this.adoInputs.Destination_Project}. Please refer to the error below:\n`;
-                const error = `Error ${updatePipelineResponse.status}: ${updatePipelineResponse.statusText}`;
+                const error = `Error ${updatePipelineResponse.status}: ${updatePipelineResponse.statusText} ${JSON.stringify(responseObject)}`;
                 core.error(error);
                 const params = {
                     owner: this.repository.owner.login,
@@ -338,6 +339,7 @@ class IssueCommand {
                     issue_number: this.issue.number
                 };
                 yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: updatePipelineError.concat(`\n${error}`) }));
+                throw new Error(error);
             }
         });
     }
