@@ -31,8 +31,8 @@ jobs:
             const input = JSON.parse(payload)
             core.setOutput('issue_name', input.issue_name);
 
-      - id: ack-test
-        if: github.event.issue
+      - id: issue-labeled
+        if: github.event_name == 'issues'
         uses: ./
         with:
           ado_pat: ${{ secrets.ADO_PAT }}
@@ -42,4 +42,16 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           issue_body_json: ${{ steps.parse.outputs.payload }}
           command: 'ack'
+      
+      - id: issue-comment-input
+        if: github.event_name == 'issue_comment'
+        uses: ./
+        with:
+          ado_pat: ${{ secrets.ADO_PAT }}
+          ado_org: ${{ secrets.ADO_ORG }}
+          ado_shared_project: ${{ secrets.ADO_SHARED_PROJECT }}
+          ado_shared_service_connection: ${{ secrets.ADO_SHARED_SERVICE_CONNECTION }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          issue_body_json: ${{ steps.parse.outputs.payload }}
+          command: ${{ github.event.issue_comment.body }}
 
