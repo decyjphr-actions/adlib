@@ -187,7 +187,21 @@ At any time, you can type the following commands in the issue comment to interac
 \`share\` - Share the Shared Service Connection
 \`rewire\` - Rewire the project
 \`approve\` - Approve the request
+`;
+const errorRewire = `Hello @{{author}}, 
+:warn:The rewire operation failed with this error:
+{{error}}
 
+Please review the details and retry if it is fixable.
+
+If you have any questions, please reach out to @decyjphr. 
+
+At any time, you can type the following commands in the issue comment to interact with me:
+\`ack\` - Acknowledge the request
+\`validate\` - Validate the request
+\`share\` - Share the Shared Service Connection
+\`rewire\` - Rewire the project
+\`approve\` - Approve the request
 `;
 const errorValidation = `Hello @{{author}}, 
 Unfortunately, I am unable to validate that everything is good to go.
@@ -225,12 +239,12 @@ class IssueCommand {
     }
     share() {
         return __awaiter(this, void 0, void 0, function* () {
+            const params = {
+                owner: this.repository.owner.login,
+                repo: this.repository.name,
+                issue_number: this.issue.number
+            };
             try {
-                const params = {
-                    owner: this.repository.owner.login,
-                    repo: this.repository.name,
-                    issue_number: this.issue.number
-                };
                 const sharedServiceConnection = yield this.getSharedServiceConnection();
                 if (sharedServiceConnection) {
                     // Share this service connection to the user's project
@@ -255,12 +269,12 @@ class IssueCommand {
     }
     rewire() {
         return __awaiter(this, void 0, void 0, function* () {
+            const params = {
+                owner: this.repository.owner.login,
+                repo: this.repository.name,
+                issue_number: this.issue.number
+            };
             try {
-                const params = {
-                    owner: this.repository.owner.login,
-                    repo: this.repository.name,
-                    issue_number: this.issue.number
-                };
                 const sharedServiceConnection = yield this.getSharedServiceConnection();
                 if (sharedServiceConnection) {
                     // Share this service connection to the user's project
@@ -297,8 +311,11 @@ class IssueCommand {
             }
             catch (error) {
                 const e = error;
-                const message = `${e} performing validate command`;
+                const message = `${e} performing rewire command`;
                 core.error(message);
+                yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: errorRewire
+                        .replace('{{author}}', this.actor)
+                        .replace('{{error}}', message) }));
                 throw new Error(message);
             }
         });
@@ -547,8 +564,6 @@ Service Connection \`${this.adoInputs.adoSharedServiceConnection}\` was successf
                 headers: this.headers
             });
             core.debug(`buildDefinitionResponse response: ${JSON.stringify(buildDefinitionResponse)}`);
-            //const responseTxt = await buildDefinitionResponse.text()
-            //core.debug(`buildDefinitionResponse Text response : ${responseTxt}`)
             const responseObject = yield buildDefinitionResponse.json();
             core.debug(`buildDefinitionResponse JSON response : ${JSON.stringify(responseObject)}`);
             if (buildDefinitionResponse.ok) {

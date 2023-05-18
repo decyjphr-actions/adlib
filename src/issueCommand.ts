@@ -43,9 +43,22 @@ At any time, you can type the following commands in the issue comment to interac
 \`share\` - Share the Shared Service Connection
 \`rewire\` - Rewire the project
 \`approve\` - Approve the request
-
 `
+const errorRewire = `Hello @{{author}}, 
+:warn:The rewire operation failed with this error:
+{{error}}
 
+Please review the details and retry if it is fixable.
+
+If you have any questions, please reach out to @decyjphr. 
+
+At any time, you can type the following commands in the issue comment to interact with me:
+\`ack\` - Acknowledge the request
+\`validate\` - Validate the request
+\`share\` - Share the Shared Service Connection
+\`rewire\` - Rewire the project
+\`approve\` - Approve the request
+`
 const errorValidation = `Hello @{{author}}, 
 Unfortunately, I am unable to validate that everything is good to go.
 
@@ -98,12 +111,12 @@ export class IssueCommand implements IIssue {
   }
 
   async share(): Promise<void> {
+    const params = {
+      owner: this.repository.owner.login,
+      repo: this.repository.name,
+      issue_number: this.issue.number
+    }
     try {
-      const params = {
-        owner: this.repository.owner.login,
-        repo: this.repository.name,
-        issue_number: this.issue.number
-      }
       const sharedServiceConnection: {
         id: string
         name: string
@@ -127,17 +140,18 @@ export class IssueCommand implements IIssue {
       const e = error as Error & {status: number}
       const message = `${e} performing validate command`
       core.error(message)
+
       throw new Error(message)
     }
   }
 
   async rewire(): Promise<void> {
+    const params = {
+      owner: this.repository.owner.login,
+      repo: this.repository.name,
+      issue_number: this.issue.number
+    }
     try {
-      const params = {
-        owner: this.repository.owner.login,
-        repo: this.repository.name,
-        issue_number: this.issue.number
-      }
       const sharedServiceConnection: {
         id: string
         name: string
@@ -195,8 +209,14 @@ export class IssueCommand implements IIssue {
       })
     } catch (error) {
       const e = error as Error & {status: number}
-      const message = `${e} performing validate command`
+      const message = `${e} performing rewire command`
       core.error(message)
+      await this.octokitClient.rest.issues.createComment({
+        ...params,
+        body: errorRewire
+          .replace('{{author}}', this.actor)
+          .replace('{{error}}', message)
+      })
       throw new Error(message)
     }
   }
@@ -573,8 +593,6 @@ Service Connection \`${this.adoInputs.adoSharedServiceConnection}\` was successf
         buildDefinitionResponse
       )}`
     )
-    //const responseTxt = await buildDefinitionResponse.text()
-    //core.debug(`buildDefinitionResponse Text response : ${responseTxt}`)
     const responseObject = await buildDefinitionResponse.json()
     core.debug(
       `buildDefinitionResponse JSON response : ${JSON.stringify(
