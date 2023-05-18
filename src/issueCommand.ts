@@ -28,6 +28,11 @@ export class IssueCommand implements IIssue {
   command: Commands
   octokitClient: InstanceType<typeof GitHub>
   actor: string
+  headers = [
+    ['Authorization', `Basic empty`],
+    ['Accept', 'application/json;api-version=7.1-preview.4'],
+    ['Content-Type', 'application/json; charset=utf-8']
+  ]
 
   constructor(
     _octokit: InstanceType<typeof GitHub>,
@@ -46,6 +51,11 @@ export class IssueCommand implements IIssue {
     this.command = _command
     this.octokitClient = _octokit
     this.actor = _actor
+    this.headers = [
+      ['Authorization', `Basic ${this.adoInputs.adoToken}`],
+      ['Accept', 'application/json;api-version=7.1-preview.4'],
+      ['Content-Type', 'application/json; charset=utf-8']
+    ]
   }
 
   async execute(): Promise<void> {
@@ -188,16 +198,10 @@ export class IssueCommand implements IIssue {
 
   private async getADOPipelinesList(): Promise<unknown> {
     const listPipelinesUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.Destination_Project}/_apis/build/definitions?api-version=7.0`
-
-    const headers = [
-      ['Authorization', `Basic ${this.adoInputs.adoToken}`],
-      ['Accept', 'application/json;api-version=7.1-preview.4'],
-      ['Content-Type', 'application/json; charset=utf-8']
-    ]
-
+    const pipelinesList = []
     const listPipelinesResponse: Response = await nodeFetch(listPipelinesUrl, {
       method: 'GET',
-      headers
+      headers: this.headers
     })
     core.debug(`response: ${JSON.stringify(listPipelinesResponse)}`)
     core.debug(`listPipelinesResponse.ok = ${listPipelinesResponse.ok}`)
@@ -209,7 +213,13 @@ export class IssueCommand implements IIssue {
     core.debug(`response: ${JSON.stringify(responseObject)}`)
 
     if (listPipelinesResponse.ok) {
-      return responseObject.value
+      for (const build of responseObject.value) {
+        const pipeline = this.getBuildDefinition(build._links.self.href)
+        if (pipeline) {
+          pipelinesList.push(pipeline)
+        }
+      }
+      return pipelinesList
     } else {
       const error = `No pipelines found in project ${this.adoInputs.Destination_Project}. Please check the name of the project and resubmit the issue`
       core.error(error)
@@ -227,11 +237,6 @@ export class IssueCommand implements IIssue {
       core.debug(`${JSON.stringify(destinationProject)} found`)
     }
 
-    const headers = [
-      ['Authorization', `Basic ${this.adoInputs.adoToken}`],
-      ['Accept', 'application/json;api-version=7.0'],
-      ['Content-Type', 'application/json']
-    ]
     const data = [
       {
         name: `${this.adoInputs.adoOrg}-${this.adoInputs.Destination_Project}`,
@@ -246,7 +251,7 @@ export class IssueCommand implements IIssue {
     const shareUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/_apis/serviceendpoint/endpoints/${sharedServiceConnection.id}?api-version=7.0`
     const shareServiceConnectionResponse: Response = await nodeFetch(shareUrl, {
       method: 'PATCH',
-      headers,
+      headers: this.headers,
       body: JSON.stringify(data)
     })
     core.debug(
@@ -280,15 +285,10 @@ export class IssueCommand implements IIssue {
 
   private async getDestinationProject(): Promise<{id: string} | null> {
     const projectByNameUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/_apis/projects/${this.adoInputs.Destination_Project}?api-version=7.0`
-    const headers = [
-      ['Authorization', `Basic ${this.adoInputs.adoToken}`],
-      ['Accept', 'application/json;api-version=7.0'],
-      ['Content-Type', 'application/json; charset=utf-8']
-    ]
 
     const projectByNameResponse: Response = await nodeFetch(projectByNameUrl, {
       method: 'GET',
-      headers
+      headers: this.headers
     })
     core.debug(
       `projectByNameResponse response: ${JSON.stringify(projectByNameResponse)}`
@@ -306,20 +306,40 @@ export class IssueCommand implements IIssue {
     }
   }
 
+  private async getBuildDefinition(
+    fetchUrl: string
+  ): Promise<{id: string} | null> {
+    const buildDefinitionResponse: Response = await nodeFetch(fetchUrl, {
+      method: 'GET',
+      headers: this.headers
+    })
+    core.debug(
+      `projectByNameResponse response: ${JSON.stringify(
+        buildDefinitionResponse
+      )}`
+    )
+    const responseObject = await buildDefinitionResponse.json()
+    core.debug(
+      `buildDefinitionResponse JSON response : ${JSON.stringify(
+        responseObject
+      )}`
+    )
+    if (buildDefinitionResponse.ok) {
+      return responseObject
+    } else {
+      const error = `Build Definition not found for url ${fetchUrl}. Error: ${buildDefinitionResponse.statusText}`
+      core.error(error)
+      return null
+    }
+  }
   private async getSharedServiceConnection(): Promise<unknown> {
     const serviceConnectionByNameUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.adoSharedProject}/_apis/serviceendpoint/endpoints?endpointNames=${this.adoInputs.adoSharedServiceConnection}&api-version=7.0`
-
-    const headers = [
-      ['Authorization', `Basic ${this.adoInputs.adoToken}`],
-      ['Accept', 'application/json;api-version=7.0'],
-      ['Content-Type', 'application/json; charset=utf-8']
-    ]
 
     const serviceConnectionByNameResponse: Response = await nodeFetch(
       serviceConnectionByNameUrl,
       {
         method: 'GET',
-        headers
+        headers: this.headers
       }
     )
     core.debug(

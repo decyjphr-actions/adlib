@@ -166,6 +166,11 @@ const goodPipelinesList = `Hello @{{author}}, I found the following pipelines in
 const badPipelinesList = `Hello @{{author}}, I am having trouble retrieving pipelines from your project {{ado_project}}. Please refer to the error below:\n`;
 class IssueCommand {
     constructor(_octokit, _actor, _command, _issue, _repository, _adoInputs) {
+        this.headers = [
+            ['Authorization', `Basic empty`],
+            ['Accept', 'application/json;api-version=7.1-preview.4'],
+            ['Content-Type', 'application/json; charset=utf-8']
+        ];
         this.issue = _issue;
         this.repository = _repository;
         this.adoInputs = _adoInputs;
@@ -173,6 +178,11 @@ class IssueCommand {
         this.command = _command;
         this.octokitClient = _octokit;
         this.actor = _actor;
+        this.headers = [
+            ['Authorization', `Basic ${this.adoInputs.adoToken}`],
+            ['Accept', 'application/json;api-version=7.1-preview.4'],
+            ['Content-Type', 'application/json; charset=utf-8']
+        ];
     }
     execute() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -291,14 +301,10 @@ class IssueCommand {
     getADOPipelinesList() {
         return __awaiter(this, void 0, void 0, function* () {
             const listPipelinesUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.Destination_Project}/_apis/build/definitions?api-version=7.0`;
-            const headers = [
-                ['Authorization', `Basic ${this.adoInputs.adoToken}`],
-                ['Accept', 'application/json;api-version=7.1-preview.4'],
-                ['Content-Type', 'application/json; charset=utf-8']
-            ];
+            const pipelinesList = [];
             const listPipelinesResponse = yield (0, node_fetch_1.default)(listPipelinesUrl, {
                 method: 'GET',
-                headers
+                headers: this.headers
             });
             core.debug(`response: ${JSON.stringify(listPipelinesResponse)}`);
             core.debug(`listPipelinesResponse.ok = ${listPipelinesResponse.ok}`);
@@ -307,7 +313,13 @@ class IssueCommand {
             const responseObject = yield listPipelinesResponse.json();
             core.debug(`response: ${JSON.stringify(responseObject)}`);
             if (listPipelinesResponse.ok) {
-                return responseObject.value;
+                for (const build of responseObject.value) {
+                    const pipeline = this.getBuildDefinition(build._links.self.href);
+                    if (pipeline) {
+                        pipelinesList.push(pipeline);
+                    }
+                }
+                return pipelinesList;
             }
             else {
                 const error = `No pipelines found in project ${this.adoInputs.Destination_Project}. Please check the name of the project and resubmit the issue`;
@@ -323,11 +335,6 @@ class IssueCommand {
             if (destinationProject) {
                 core.debug(`${JSON.stringify(destinationProject)} found`);
             }
-            const headers = [
-                ['Authorization', `Basic ${this.adoInputs.adoToken}`],
-                ['Accept', 'application/json;api-version=7.0'],
-                ['Content-Type', 'application/json']
-            ];
             const data = [
                 {
                     name: `${this.adoInputs.adoOrg}-${this.adoInputs.Destination_Project}`,
@@ -341,7 +348,7 @@ class IssueCommand {
             const shareUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/_apis/serviceendpoint/endpoints/${sharedServiceConnection.id}?api-version=7.0`;
             const shareServiceConnectionResponse = yield (0, node_fetch_1.default)(shareUrl, {
                 method: 'PATCH',
-                headers,
+                headers: this.headers,
                 body: JSON.stringify(data)
             });
             core.debug(`shareServiceConnectionResponse response: ${JSON.stringify(shareServiceConnectionResponse)}`);
@@ -363,14 +370,9 @@ class IssueCommand {
     getDestinationProject() {
         return __awaiter(this, void 0, void 0, function* () {
             const projectByNameUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/_apis/projects/${this.adoInputs.Destination_Project}?api-version=7.0`;
-            const headers = [
-                ['Authorization', `Basic ${this.adoInputs.adoToken}`],
-                ['Accept', 'application/json;api-version=7.0'],
-                ['Content-Type', 'application/json; charset=utf-8']
-            ];
             const projectByNameResponse = yield (0, node_fetch_1.default)(projectByNameUrl, {
                 method: 'GET',
-                headers
+                headers: this.headers
             });
             core.debug(`projectByNameResponse response: ${JSON.stringify(projectByNameResponse)}`);
             const responseObject = yield projectByNameResponse.json();
@@ -385,17 +387,31 @@ class IssueCommand {
             }
         });
     }
+    getBuildDefinition(fetchUrl) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const buildDefinitionResponse = yield (0, node_fetch_1.default)(fetchUrl, {
+                method: 'GET',
+                headers: this.headers
+            });
+            core.debug(`projectByNameResponse response: ${JSON.stringify(buildDefinitionResponse)}`);
+            const responseObject = yield buildDefinitionResponse.json();
+            core.debug(`buildDefinitionResponse JSON response : ${JSON.stringify(responseObject)}`);
+            if (buildDefinitionResponse.ok) {
+                return responseObject;
+            }
+            else {
+                const error = `Build Definition not found for url ${fetchUrl}. Error: ${buildDefinitionResponse.statusText}`;
+                core.error(error);
+                return null;
+            }
+        });
+    }
     getSharedServiceConnection() {
         return __awaiter(this, void 0, void 0, function* () {
             const serviceConnectionByNameUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.adoSharedProject}/_apis/serviceendpoint/endpoints?endpointNames=${this.adoInputs.adoSharedServiceConnection}&api-version=7.0`;
-            const headers = [
-                ['Authorization', `Basic ${this.adoInputs.adoToken}`],
-                ['Accept', 'application/json;api-version=7.0'],
-                ['Content-Type', 'application/json; charset=utf-8']
-            ];
             const serviceConnectionByNameResponse = yield (0, node_fetch_1.default)(serviceConnectionByNameUrl, {
                 method: 'GET',
-                headers
+                headers: this.headers
             });
             core.debug(`serviceConnectionByNameResponse response: ${JSON.stringify(serviceConnectionByNameResponse)}`);
             const responseObject = yield serviceConnectionByNameResponse.json();
