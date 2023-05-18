@@ -1,22 +1,25 @@
-name: Share the Motorola Standard ADO service connection with a project
-description: This is an issue ops based interface to share ADO Service connection using the ADO2GH tool.
+name: Rewire ADO pipelines to use a Standard GitHub App service connection in a project
+description: This is an issue ops based interface to Rewire ADO pipelines to use a Standard GitHub App service connection.
 title: "Share Motorola Standard ADO service connection with a project"
 labels: ["issueops-share-ado"]
 body:
 - type: markdown
   attributes:
-    value: "## Share the Motorola standard ADO<>Github App-based Service Connection with your project"
+    value: "## Rewire ADO pipelines to use a Standard GitHub App service connection in a project."
 - type: markdown
   attributes:
     value: |
-      This is an issue ops based interface to share ADO Service connection using the ADO2GH tool. The connection that is shared and the source project cannot be specified. It is the DLT standard connection.     
-      <details>
-        <summary>Additional Info</summary>
-        - The connection will appear in the destination project with the name of `<original_connection_name>-<destination-project>`
-        <br>- Once you submit this issue a designated team member would have to authorize this request
-        <br>- Once it is complete, you will see an issue comment at the bottom indicating the status
+      This is an issue to Rewire ADO pipelines in an ADO project to use a Standard GitHub App service connection.</br></br>
 
-      </details>
+      If you have any questions, please reach out to @decyjphr.</br></br>
+
+      Once the issue is created, at any time, you can type the following commands in the issue comment to interact with me:</br>
+      `ack` - Acknowledge the request
+      `validate` - Validate the request
+      `share` - Share the Shared Service Connection
+      `rewire` - Rewire the project
+      `approve` - Approve the request
+
 - type: input
   id: destination-project
   attributes:
