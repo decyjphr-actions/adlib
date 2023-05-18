@@ -221,11 +221,10 @@ export class IssueCommand implements IIssue {
 | id | name | url |
 | -- | -- | -- |
 ${pipelinesList.reduce((x: unknown, y: unknown) => {
-  return (x as string).concat(`
-| ${(y as {id: string}).id} | ${(y as {name: string}).name} | ${
+  return `${x} | ${(y as {id: string}).id} | ${(y as {name: string}).name} | ${
     (y as {url: string}).url
-  } |\n`)
-})}
+  } |\n`
+}, '')}
 `
   }
 

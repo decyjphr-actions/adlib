@@ -312,9 +312,8 @@ class IssueCommand {
 | id | name | url |
 | -- | -- | -- |
 ${pipelinesList.reduce((x, y) => {
-            return x.concat(`
-| ${y.id} | ${y.name} | ${y.url} |\n`);
-        })}
+            return `${x} | ${y.id} | ${y.name} | ${y.url} |\n`;
+        }, '')}
 `;
     }
     getADOPipelinesList() {
