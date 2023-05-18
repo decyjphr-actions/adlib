@@ -1,11 +1,11 @@
-name: Rewire ADO pipelines to use a pre-defined GitHub App service connection in a project
-description: This is an issue ops based interface to Rewire ADO pipelines to use a pre-defined GitHub App service connection.
-title: "Rewire ADO pipelines to use a pre-defined GitHub App service connection in a project"
+name: Rewire ADO pipelines in a project to use a pre-defined GitHub App service connection
+description: This is an issue ops based interface to Rewire ADO pipelines in a project to use a pre-defined GitHub App service connection.
+title: "Rewire ADO pipelines in a project to use a pre-defined GitHub App service connection"
 labels: ["issueops-share-ado"]
 body:
 - type: markdown
   attributes:
-    value: "## Rewire ADO pipelines to use a Standard GitHub App service connection in a project."
+    value: "## Rewire ADO pipelines in a project to use a Standard GitHub App service connection."
 - type: markdown
   attributes:
     value: |
