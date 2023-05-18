@@ -151,14 +151,17 @@ const core = __importStar(__nccwpck_require__(2186));
 const node_fetch_1 = __importDefault(__nccwpck_require__(467));
 const acknowledgement = `Hello @{{author}}, 
 I'm a bot that helps you rewire your ADO pipelines to GitHub link to use a shared GitHub App based service connection. 
-I've received your request to rewire your project {{ado_project}}. 
-If everything looks good, I'll let you know the next steps. 
+I've received your request to rewire your project \`{{ado_project}}\`. 
 
-If you have any questions, please reach out to @decyjphr. You can also type the commands below as an issue comment to interact with me:
-ack - Acknowledge the request
-validate - Validate the request
-rewire - Rewire the project
-approve - Approve the request
+If everything looks good, I'll update you with the next steps. 
+
+If you have any questions, please reach out to @decyjphr. 
+
+At any time, you can type the following commands in the issue comment to interact with me:
+\`ack\` - Acknowledge the request
+\`validate\` - Validate the request
+\`rewire\` - Rewire the project
+\`approve\` - Approve the request
 `;
 const goodValidation = `Hello @{{author}}, I will be using the following Service Connection to rewire your ADO pipelines:\n`;
 const badValidation = `Hello @{{author}}, I am having trouble with your request. Please see the error below:\n`;
