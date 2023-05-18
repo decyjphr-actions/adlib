@@ -27,6 +27,18 @@ export class IssueCommentCommand extends IssueCommand implements IIssue {
     )
     this.issueComment = _issueComment
   }
+
+  async look(): Promise<void> {
+    const params = {
+      owner: this.repository.owner.login,
+      repo: this.repository.name,
+      comment_id: this.issueComment.comment.id
+    }
+    await this.octokitClient.rest.reactions.createForIssueComment({
+      ...params,
+      content: 'eyes'
+    })
+  }
   /*
   async ack(): Promise<void> {
     core.debug(`ack called for ${JSON.stringify(this.issue)}`)
