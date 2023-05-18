@@ -81,29 +81,35 @@ export class IssueCommand implements IIssue {
   }
 
   async share(): Promise<void> {
-    const params = {
-      owner: this.repository.owner.login,
-      repo: this.repository.name,
-      issue_number: this.issue.number
-    }
-    const sharedServiceConnection: {
-      id: string
-      name: string
-      type: string
-    } | null = await this.getSharedServiceConnection()
-    if (sharedServiceConnection) {
-      // Share this service connection to the user's project
-      await this.shareServiceConnection(sharedServiceConnection)
-    } else {
-      core.debug(`Creating issue comment with Share failed message`)
-      const error = `Service Connection ${this.adoInputs.adoSharedServiceConnection} not found in project ${this.adoInputs.adoSharedProject}}`
-      core.error(error)
-      await this.octokitClient.rest.issues.createComment({
-        ...params,
-        body: badSharedServiceConnection
-          .replace('{{author}}', this.actor)
-          .concat(`\n${error}`)
-      })
+    try {
+      const params = {
+        owner: this.repository.owner.login,
+        repo: this.repository.name,
+        issue_number: this.issue.number
+      }
+      const sharedServiceConnection: {
+        id: string
+        name: string
+        type: string
+      } | null = await this.getSharedServiceConnection()
+      if (sharedServiceConnection) {
+        // Share this service connection to the user's project
+        await this.shareServiceConnection(sharedServiceConnection)
+      } else {
+        core.debug(`Creating issue comment with Share failed message`)
+        const error = `Service Connection ${this.adoInputs.adoSharedServiceConnection} not found in project ${this.adoInputs.adoSharedProject}}`
+        core.error(error)
+        await this.octokitClient.rest.issues.createComment({
+          ...params,
+          body: badSharedServiceConnection
+            .replace('{{author}}', this.actor)
+            .concat(`\n${error}`)
+        })
+      }
+    } catch (error) {
+      const e = error as Error & {status: number}
+      const message = `${e} performing validate command`
+      core.error(message)
     }
   }
 
