@@ -45,7 +45,7 @@ At any time, you can type the following commands in the issue comment to interac
 \`approve\` - Approve the request
 `
 const errorRewire = `Hello @{{author}}, 
-:warn:The rewire operation failed with this error:
+:warn: The rewire operation failed with this error:
 {{error}}
 
 Please review the details and retry if it is fixable.
