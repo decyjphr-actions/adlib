@@ -20,16 +20,32 @@ At any time, you can type the following commands in the issue comment to interac
 
 **Type \`validate\` to get started.**
 `
-const goodSharedServiceConnection = `Hello @{{author}}, I will be using the following Service Connection to rewire your ADO pipelines:\n`
-const badSharedServiceConnection = `Hello @{{author}}, I am having trouble with validating the shared Service Connection request. Please see the error below:\n`
-const goodPipelinesList = `Hello @{{author}}, I found the following pipelines in your project that will be rewired:\n`
-const badPipelinesList = `Hello @{{author}}, I am having trouble retrieving pipelines from your project {{ado_project}}. Please refer to the error below:\n`
-const goodValidation = `Hello @{{author}}, 
+const okSharedServiceConnection = `Hello @{{author}}, I will be using the following Service Connection to rewire your ADO pipelines:\n`
+const errorSharedServiceConnection = `Hello @{{author}}, I am having trouble with validating the shared Service Connection request. Please see the error below:\n`
+const okPipelinesList = `Hello @{{author}}, I found the following pipelines in your project that will be rewired:\n`
+const errorPipelinesList = `Hello @{{author}}, I am having trouble retrieving pipelines from your project {{ado_project}}. Please refer to the error below:\n`
+const okValidation = `Hello @{{author}}, 
 Everything looks good to proceed with rewiring your ADO Pipelines.
 
 **Type \`rewire\` to start the rewire process.**
 `
-const badValidation = `Hello @{{author}}, 
+const okRewire = `Hello @{{author}} :tada:, 
+Congrats! You've successfully rewired the pipelines in your \`ADO Project\`.
+
+You can close this issue now, or if you choose, keep it open and continue interacting with me.
+
+If you have any questions, please reach out to @decyjphr. 
+
+At any time, you can type the following commands in the issue comment to interact with me:
+\`ack\` - Acknowledge the request
+\`validate\` - Validate the request
+\`share\` - Share the Shared Service Connection
+\`rewire\` - Rewire the project
+\`approve\` - Approve the request
+
+`
+
+const errorValidation = `Hello @{{author}}, 
 Unfortunately, I am unable to validate that everything is good to go.
 
 You can try to \`validate\` again or \`ack\` to acknowledge the request.
@@ -101,7 +117,7 @@ export class IssueCommand implements IIssue {
         core.error(error)
         await this.octokitClient.rest.issues.createComment({
           ...params,
-          body: badSharedServiceConnection
+          body: errorSharedServiceConnection
             .replace('{{author}}', this.actor)
             .concat(`\n${error}`)
         })
@@ -135,7 +151,7 @@ export class IssueCommand implements IIssue {
         core.error(error)
         await this.octokitClient.rest.issues.createComment({
           ...params,
-          body: badSharedServiceConnection
+          body: errorSharedServiceConnection
             .replace('{{author}}', this.actor)
             .concat(`\n${error}`)
         })
@@ -158,7 +174,7 @@ export class IssueCommand implements IIssue {
         core.error(error)
         await this.octokitClient.rest.issues.createComment({
           ...params,
-          body: badPipelinesList
+          body: errorPipelinesList
             .replace('{{author}}', this.actor)
             .replace('{{ado_project}}', this.adoInputs.Destination_Project)
             .concat(`\n${error}`)
@@ -172,6 +188,10 @@ export class IssueCommand implements IIssue {
         }
         await this.updatePipeline(pipeline)
       }
+      await this.octokitClient.rest.issues.createComment({
+        ...params,
+        body: okRewire.replace('{{author}}', this.actor)
+      })
     } catch (error) {
       const e = error as Error & {status: number}
       const message = `${e} performing validate command`
@@ -268,7 +288,7 @@ export class IssueCommand implements IIssue {
         type: string
       } | null = await this.getSharedServiceConnection()
       if (sharedServiceConnection) {
-        const body = goodSharedServiceConnection
+        const body = okSharedServiceConnection
           .replace('{{author}}', this.actor)
           .concat(this.printSharedServiceConnection(sharedServiceConnection))
         core.debug(`Creating issue comment with GoodValidation message ${body}`)
@@ -282,7 +302,7 @@ export class IssueCommand implements IIssue {
         core.error(error)
         await this.octokitClient.rest.issues.createComment({
           ...params,
-          body: badSharedServiceConnection
+          body: errorSharedServiceConnection
             .replace('{{author}}', this.actor)
             .concat(`\n${error}`)
         })
@@ -292,7 +312,7 @@ export class IssueCommand implements IIssue {
       const pipelinesList = await this.getADOPipelinesList()
 
       if (pipelinesList) {
-        const body = goodPipelinesList
+        const body = okPipelinesList
           .replace('{{author}}', this.actor)
           .concat(this.printPipelinesList(pipelinesList))
         core.debug(
@@ -308,7 +328,7 @@ export class IssueCommand implements IIssue {
         core.error(error)
         await this.octokitClient.rest.issues.createComment({
           ...params,
-          body: badPipelinesList
+          body: errorPipelinesList
             .replace('{{author}}', this.actor)
             .replace('{{ado_project}}', this.adoInputs.Destination_Project)
             .concat(`\n${error}`)
@@ -319,12 +339,12 @@ export class IssueCommand implements IIssue {
       if (validationSuccess) {
         await this.octokitClient.rest.issues.createComment({
           ...params,
-          body: goodValidation.replace('{{author}}', this.actor)
+          body: okValidation.replace('{{author}}', this.actor)
         })
       } else {
         await this.octokitClient.rest.issues.createComment({
           ...params,
-          body: badValidation.replace('{{author}}', this.actor)
+          body: errorValidation.replace('{{author}}', this.actor)
         })
       }
     } catch (error) {

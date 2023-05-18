@@ -164,16 +164,31 @@ At any time, you can type the following commands in the issue comment to interac
 
 **Type \`validate\` to get started.**
 `;
-const goodSharedServiceConnection = `Hello @{{author}}, I will be using the following Service Connection to rewire your ADO pipelines:\n`;
-const badSharedServiceConnection = `Hello @{{author}}, I am having trouble with validating the shared Service Connection request. Please see the error below:\n`;
-const goodPipelinesList = `Hello @{{author}}, I found the following pipelines in your project that will be rewired:\n`;
-const badPipelinesList = `Hello @{{author}}, I am having trouble retrieving pipelines from your project {{ado_project}}. Please refer to the error below:\n`;
-const goodValidation = `Hello @{{author}}, 
+const okSharedServiceConnection = `Hello @{{author}}, I will be using the following Service Connection to rewire your ADO pipelines:\n`;
+const errorSharedServiceConnection = `Hello @{{author}}, I am having trouble with validating the shared Service Connection request. Please see the error below:\n`;
+const okPipelinesList = `Hello @{{author}}, I found the following pipelines in your project that will be rewired:\n`;
+const errorPipelinesList = `Hello @{{author}}, I am having trouble retrieving pipelines from your project {{ado_project}}. Please refer to the error below:\n`;
+const okValidation = `Hello @{{author}}, 
 Everything looks good to proceed with rewiring your ADO Pipelines.
 
 **Type \`rewire\` to start the rewire process.**
 `;
-const badValidation = `Hello @{{author}}, 
+const okRewire = `Hello @{{author}} :tada:, 
+Congrats! You've successfully rewired the pipelines in your \`ADO Project\`.
+
+You can close this issue now, or if you choose, keep it open and continue interacting with me.
+
+If you have any questions, please reach out to @decyjphr. 
+
+At any time, you can type the following commands in the issue comment to interact with me:
+\`ack\` - Acknowledge the request
+\`validate\` - Validate the request
+\`share\` - Share the Shared Service Connection
+\`rewire\` - Rewire the project
+\`approve\` - Approve the request
+
+`;
+const errorValidation = `Hello @{{author}}, 
 Unfortunately, I am unable to validate that everything is good to go.
 
 You can try to \`validate\` again or \`ack\` to acknowledge the request.
@@ -224,7 +239,7 @@ class IssueCommand {
                     core.debug(`Creating issue comment with Share failed message`);
                     const error = `Service Connection ${this.adoInputs.adoSharedServiceConnection} not found in project ${this.adoInputs.adoSharedProject}}`;
                     core.error(error);
-                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: badSharedServiceConnection
+                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: errorSharedServiceConnection
                             .replace('{{author}}', this.actor)
                             .concat(`\n${error}`) }));
                 }
@@ -254,7 +269,7 @@ class IssueCommand {
                     core.debug(`Creating issue comment with Share failed message`);
                     const error = `Service Connection ${this.adoInputs.adoSharedServiceConnection} not found in project ${this.adoInputs.adoSharedProject}}`;
                     core.error(error);
-                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: badSharedServiceConnection
+                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: errorSharedServiceConnection
                             .replace('{{author}}', this.actor)
                             .concat(`\n${error}`) }));
                     return;
@@ -264,7 +279,7 @@ class IssueCommand {
                     core.debug(`Creating issue comment with BadPipelinesList message`);
                     const error = `No pipelines found in project ${this.adoInputs.Destination_Project}. Please check the name of the project and resubmit the issue`;
                     core.error(error);
-                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: badPipelinesList
+                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: errorPipelinesList
                             .replace('{{author}}', this.actor)
                             .replace('{{ado_project}}', this.adoInputs.Destination_Project)
                             .concat(`\n${error}`) }));
@@ -277,6 +292,7 @@ class IssueCommand {
                     }
                     yield this.updatePipeline(pipeline);
                 }
+                yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: okRewire.replace('{{author}}', this.actor) }));
             }
             catch (error) {
                 const e = error;
@@ -342,7 +358,7 @@ class IssueCommand {
                 };
                 const sharedServiceConnection = yield this.getSharedServiceConnection();
                 if (sharedServiceConnection) {
-                    const body = goodSharedServiceConnection
+                    const body = okSharedServiceConnection
                         .replace('{{author}}', this.actor)
                         .concat(this.printSharedServiceConnection(sharedServiceConnection));
                     core.debug(`Creating issue comment with GoodValidation message ${body}`);
@@ -352,14 +368,14 @@ class IssueCommand {
                     core.debug(`Creating issue comment with BadValidation message`);
                     const error = `Service Connection ${this.adoInputs.adoSharedServiceConnection} not found in project ${this.adoInputs.adoSharedProject}}`;
                     core.error(error);
-                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: badSharedServiceConnection
+                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: errorSharedServiceConnection
                             .replace('{{author}}', this.actor)
                             .concat(`\n${error}`) }));
                     validationSuccess = false;
                 }
                 const pipelinesList = yield this.getADOPipelinesList();
                 if (pipelinesList) {
-                    const body = goodPipelinesList
+                    const body = okPipelinesList
                         .replace('{{author}}', this.actor)
                         .concat(this.printPipelinesList(pipelinesList));
                     core.debug(`Creating issue comment with GoodPipelinesList message ${body}`);
@@ -369,17 +385,17 @@ class IssueCommand {
                     core.debug(`Creating issue comment with BadPipelinesList message`);
                     const error = `No pipelines found in project ${this.adoInputs.Destination_Project}. Please check the name of the project and resubmit the issue`;
                     core.error(error);
-                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: badPipelinesList
+                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: errorPipelinesList
                             .replace('{{author}}', this.actor)
                             .replace('{{ado_project}}', this.adoInputs.Destination_Project)
                             .concat(`\n${error}`) }));
                     validationSuccess = false;
                 }
                 if (validationSuccess) {
-                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: goodValidation.replace('{{author}}', this.actor) }));
+                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: okValidation.replace('{{author}}', this.actor) }));
                 }
                 else {
-                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: badValidation.replace('{{author}}', this.actor) }));
+                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: errorValidation.replace('{{author}}', this.actor) }));
                 }
             }
             catch (error) {
