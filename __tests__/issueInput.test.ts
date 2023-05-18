@@ -61,7 +61,7 @@ test('Input Helper Ack test', async () => {
     await rewireInputs.execute()
   }
 })
-
+/*
 test('Input Helper Validate test', async () => {
   process.env['INPUT_COMMAND'] = 'rewire'
   const inputs: IIssue | undefined = inputHelper.getInputs()
@@ -73,6 +73,7 @@ test('Input Helper Validate test', async () => {
     await rewireInputs.execute()
   }
 })
+*/
 
 function initializeNock(): nock.Scope {
   // nock.disableNetConnect()

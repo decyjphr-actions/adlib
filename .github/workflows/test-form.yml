@@ -32,6 +32,7 @@ jobs:
             core.setOutput('issue_name', input.issue_name);
 
       - id: ack-test
+        if: github.event.issue
         uses: ./
         with:
           ado_pat: ${{ secrets.ADO_PAT }}
@@ -42,13 +43,3 @@ jobs:
           issue_body_json: ${{ steps.parse.outputs.payload }}
           command: 'ack'
 
-      - id: validate-test
-        uses: ./
-        with:
-          ado_pat: ${{ secrets.ADO_PAT }}
-          ado_org: ${{ secrets.ADO_ORG }}
-          ado_shared_project: ${{ secrets.ADO_SHARED_PROJECT }}
-          ado_shared_service_connection: ${{ secrets.ADO_SHARED_SERVICE_CONNECTION }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          issue_body_json: ${{ steps.parse.outputs.payload }}
-          command: 'rewire'

@@ -5,7 +5,17 @@ import {GitHub} from '@actions/github/lib/utils'
 import * as core from '@actions/core'
 import nodeFetch, {Response} from 'node-fetch'
 
-const acknowledgement = `Hello @{{author}}, I'm a bot that helps you rewire your ADO pipelines to GitHub link to use a shared GitHub App based service connection. I've received your request to rewire your project {{ado_project}}. I'll let you know when I'm done.`
+const acknowledgement = `Hello @{{author}}, 
+I'm a bot that helps you rewire your ADO pipelines to GitHub link to use a shared GitHub App based service connection. 
+I've received your request to rewire your project {{ado_project}}. 
+If everything looks good, I'll let you know the next steps. 
+
+If you have any questions, please reach out to @decyjphr. You can also type the commands below as an issue comment to interact with me:
+ack - Acknowledge the request
+validate - Validate the request
+rewire - Rewire the project
+approve - Approve the request
+`
 const goodValidation = `Hello @{{author}}, I will be using the following Service Connection to rewire your ADO pipelines:\n`
 const badValidation = `Hello @{{author}}, I am having trouble with your request. Please see the error below:\n`
 const goodPipelinesList = `Hello @{{author}}, I found the following pipelines in your project that will be rewired:\n`
@@ -42,6 +52,7 @@ export class IssueCommand implements IIssue {
     const _commandName = this.command as keyof typeof this
     if (typeof this[_commandName] === 'function') {
       const command = this[_commandName] as Function
+      core.debug(`Calling ${this.command}...`)
       await command.call(this)
     }
   }
@@ -332,7 +343,6 @@ export class IssueCommand implements IIssue {
   }
 
   async ack(): Promise<void> {
-    core.debug(`ack called for ${JSON.stringify(this.issue)}`)
     const params = {
       owner: this.repository.owner.login,
       repo: this.repository.name,
@@ -344,11 +354,14 @@ export class IssueCommand implements IIssue {
         ...params,
         content: 'eyes'
       })
+      const body = acknowledgement
+        .replace('{{author}}', this.actor)
+        .replace('{{ado_project}}', this.adoInputs.Destination_Project)
+
+      core.debug(`Ack issued: ${body}`)
       await this.octokitClient.rest.issues.createComment({
         ...params,
-        body: acknowledgement
-          .replace('{{author}}', this.actor)
-          .replace('{{ado_project}}', this.adoInputs.Destination_Project)
+        body
       })
     } catch (error) {
       const e = error as Error & {status: number}

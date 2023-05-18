@@ -149,7 +149,17 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.IssueCommand = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const node_fetch_1 = __importDefault(__nccwpck_require__(467));
-const acknowledgement = `Hello @{{author}}, I'm a bot that helps you rewire your ADO pipelines to GitHub link to use a shared GitHub App based service connection. I've received your request to rewire your project {{ado_project}}. I'll let you know when I'm done.`;
+const acknowledgement = `Hello @{{author}}, 
+I'm a bot that helps you rewire your ADO pipelines to GitHub link to use a shared GitHub App based service connection. 
+I've received your request to rewire your project {{ado_project}}. 
+If everything looks good, I'll let you know the next steps. 
+
+If you have any questions, please reach out to @decyjphr. You can also type the commands below as an issue comment to interact with me:
+ack - Acknowledge the request
+validate - Validate the request
+rewire - Rewire the project
+approve - Approve the request
+`;
 const goodValidation = `Hello @{{author}}, I will be using the following Service Connection to rewire your ADO pipelines:\n`;
 const badValidation = `Hello @{{author}}, I am having trouble with your request. Please see the error below:\n`;
 const goodPipelinesList = `Hello @{{author}}, I found the following pipelines in your project that will be rewired:\n`;
@@ -169,6 +179,7 @@ class IssueCommand {
             const _commandName = this.command;
             if (typeof this[_commandName] === 'function') {
                 const command = this[_commandName];
+                core.debug(`Calling ${this.command}...`);
                 yield command.call(this);
             }
         });
@@ -401,7 +412,6 @@ class IssueCommand {
     }
     ack() {
         return __awaiter(this, void 0, void 0, function* () {
-            core.debug(`ack called for ${JSON.stringify(this.issue)}`);
             const params = {
                 owner: this.repository.owner.login,
                 repo: this.repository.name,
@@ -409,9 +419,11 @@ class IssueCommand {
             };
             try {
                 yield this.octokitClient.rest.reactions.createForIssue(Object.assign(Object.assign({}, params), { content: 'eyes' }));
-                yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: acknowledgement
-                        .replace('{{author}}', this.actor)
-                        .replace('{{ado_project}}', this.adoInputs.Destination_Project) }));
+                const body = acknowledgement
+                    .replace('{{author}}', this.actor)
+                    .replace('{{ado_project}}', this.adoInputs.Destination_Project);
+                core.debug(`Ack issued: ${body}`);
+                yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body }));
             }
             catch (error) {
                 const e = error;
