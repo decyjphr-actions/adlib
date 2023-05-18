@@ -9,8 +9,6 @@ body:
 - type: markdown
   attributes:
     value: |
-      This is an issue to Rewire ADO pipelines in an ADO project to use a Standard GitHub App service connection.
-      
       If you have any questions, please reach out to @decyjphr.
 
       Once the issue is created, at any time, you can type the following commands as issue comment to interact:
