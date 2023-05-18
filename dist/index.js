@@ -180,7 +180,6 @@ class IssueCommand {
         this.actor = _actor;
         this.headers = [
             ['Authorization', `Basic ${this.adoInputs.adoToken}`],
-            ['Accept', 'application/json;api-version=7.1-preview.4'],
             ['Content-Type', 'application/json; charset=utf-8']
         ];
     }
@@ -218,15 +217,10 @@ class IssueCommand {
                     yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: badValidation
                             .replace('{{author}}', this.actor)
                             .concat(`\n${error}`) }));
+                    return;
                 }
                 const pipelinesList = yield this.getADOPipelinesList();
-                if (pipelinesList) {
-                    core.debug(`Creating issue comment with GoodPipelinesList message`);
-                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: goodPipelinesList
-                            .replace('{{author}}', this.actor)
-                            .concat(`\n${JSON.stringify(pipelinesList, null, 2)}`) }));
-                }
-                else {
+                if (!pipelinesList || pipelinesList.length === 0) {
                     core.debug(`Creating issue comment with BadPipelinesList message`);
                     const error = `No pipelines found in project ${this.adoInputs.Destination_Project}. Please check the name of the project and resubmit the issue`;
                     core.error(error);
@@ -234,6 +228,14 @@ class IssueCommand {
                             .replace('{{author}}', this.actor)
                             .replace('{{ado_project}}', this.adoInputs.Destination_Project)
                             .concat(`\n${error}`) }));
+                    return;
+                }
+                for (const pipeline of pipelinesList) {
+                    if (pipeline.repository.properties.connectedServiceId != null) {
+                        pipeline.repository.properties.connectedServiceId =
+                            sharedServiceConnection === null || sharedServiceConnection === void 0 ? void 0 : sharedServiceConnection.id;
+                    }
+                    yield this.updatePipeline(pipeline);
                 }
             }
             catch (error) {
@@ -241,6 +243,45 @@ class IssueCommand {
                 const message = `${e} performing validate command`;
                 core.error(message);
                 throw new Error(message);
+            }
+        });
+    }
+    updatePipeline(pipeline) {
+        return __awaiter(this, void 0, void 0, function* () {
+            core.debug(`${pipeline._links.self.href}&api-version=7.0`);
+            core.debug(`data: ${JSON.stringify(pipeline)}`);
+            //const updatePipelineUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.Destination_Project}/_apis/build/definitions/5?api-version=7.0`
+            const updatePipelineResponse = yield (0, node_fetch_1.default)(`${pipeline._links.self.href}&api-version=7.0`, {
+                method: 'PUT',
+                headers: this.headers,
+                body: JSON.stringify(pipeline)
+            });
+            core.debug(`updatePipelineResponse response: ${JSON.stringify(updatePipelineResponse)}`);
+            core.debug(`updatePipelineResponse.ok = ${updatePipelineResponse.ok}`);
+            core.debug(`updatePipelineResponse.status = ${updatePipelineResponse.status}`);
+            core.debug(`updatePipelineResponse.statusText = ${updatePipelineResponse.statusText}`);
+            const responseObject = yield updatePipelineResponse.json();
+            core.debug(`updatePipelineResponse JSON response : ${JSON.stringify(responseObject)}`);
+            if (updatePipelineResponse.ok) {
+                const updatePipelineSuccess = `Hello ${this.actor}, The pipeline ${pipeline.id}, ${pipeline.name} in your project ${this.adoInputs.Destination_Project} has been rewired\n`;
+                core.debug(`Success ${updatePipelineSuccess} ${updatePipelineResponse.status}: ${updatePipelineResponse.statusText}`);
+                const params = {
+                    owner: this.repository.owner.login,
+                    repo: this.repository.name,
+                    issue_number: this.issue.number
+                };
+                yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: updatePipelineSuccess }));
+            }
+            else {
+                const updatePipelineError = `Hello ${this.actor}, I am having trouble updating pipeline ${pipeline.id}, ${pipeline.name} in your project ${this.adoInputs.Destination_Project}. Please refer to the error below:\n`;
+                const error = `Error ${updatePipelineResponse.status}: ${updatePipelineResponse.statusText}`;
+                core.error(error);
+                const params = {
+                    owner: this.repository.owner.login,
+                    repo: this.repository.name,
+                    issue_number: this.issue.number
+                };
+                yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: updatePipelineError.concat(`\n${error}`) }));
             }
         });
     }
@@ -407,11 +448,14 @@ ${pipelinesList.reduce((x, y) => {
     }
     getBuildDefinition(fetchUrl) {
         return __awaiter(this, void 0, void 0, function* () {
+            core.debug(`fetchUrl: ${fetchUrl}`);
             const buildDefinitionResponse = yield (0, node_fetch_1.default)(fetchUrl, {
                 method: 'GET',
                 headers: this.headers
             });
             core.debug(`buildDefinitionResponse response: ${JSON.stringify(buildDefinitionResponse)}`);
+            //const responseTxt = await buildDefinitionResponse.text()
+            //core.debug(`buildDefinitionResponse Text response : ${responseTxt}`)
             const responseObject = yield buildDefinitionResponse.json();
             core.debug(`buildDefinitionResponse JSON response : ${JSON.stringify(responseObject)}`);
             if (buildDefinitionResponse.ok) {

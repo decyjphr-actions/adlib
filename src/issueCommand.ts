@@ -53,7 +53,6 @@ export class IssueCommand implements IIssue {
     this.actor = _actor
     this.headers = [
       ['Authorization', `Basic ${this.adoInputs.adoToken}`],
-      ['Accept', 'application/json;api-version=7.1-preview.4'],
       ['Content-Type', 'application/json; charset=utf-8']
     ]
   }
@@ -74,7 +73,11 @@ export class IssueCommand implements IIssue {
         repo: this.repository.name,
         issue_number: this.issue.number
       }
-      const sharedServiceConnection = await this.getSharedServiceConnection()
+      const sharedServiceConnection: {
+        id: string
+        name: string
+        type: string
+      } | null = await this.getSharedServiceConnection()
       if (sharedServiceConnection) {
         // Share this service connection to the user's project
         const shareServiceConnectionResponse =
@@ -98,19 +101,20 @@ export class IssueCommand implements IIssue {
             .replace('{{author}}', this.actor)
             .concat(`\n${error}`)
         })
+        return
       }
 
-      const pipelinesList = await this.getADOPipelinesList()
+      const pipelinesList:
+        | {
+            id: string
+            name: string
+            url: string
+            _links: {self: {href: string}}
+            repository: {properties: {connectedServiceId: string | undefined}}
+          }[]
+        | null = await this.getADOPipelinesList()
 
-      if (pipelinesList) {
-        core.debug(`Creating issue comment with GoodPipelinesList message`)
-        await this.octokitClient.rest.issues.createComment({
-          ...params,
-          body: goodPipelinesList
-            .replace('{{author}}', this.actor)
-            .concat(`\n${JSON.stringify(pipelinesList, null, 2)}`)
-        })
-      } else {
+      if (!pipelinesList || pipelinesList.length === 0) {
         core.debug(`Creating issue comment with BadPipelinesList message`)
         const error = `No pipelines found in project ${this.adoInputs.Destination_Project}. Please check the name of the project and resubmit the issue`
         core.error(error)
@@ -121,12 +125,85 @@ export class IssueCommand implements IIssue {
             .replace('{{ado_project}}', this.adoInputs.Destination_Project)
             .concat(`\n${error}`)
         })
+        return
+      }
+      for (const pipeline of pipelinesList) {
+        if (pipeline.repository.properties.connectedServiceId != null) {
+          pipeline.repository.properties.connectedServiceId =
+            sharedServiceConnection?.id
+        }
+        await this.updatePipeline(pipeline)
       }
     } catch (error) {
       const e = error as Error & {status: number}
       const message = `${e} performing validate command`
       core.error(message)
       throw new Error(message)
+    }
+  }
+
+  async updatePipeline(pipeline: {
+    id: string
+    name: string
+    url: string
+    _links: {self: {href: string}}
+  }): Promise<void> {
+    core.debug(`${pipeline._links.self.href}&api-version=7.0`)
+    core.debug(`data: ${JSON.stringify(pipeline)}`)
+    //const updatePipelineUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.Destination_Project}/_apis/build/definitions/5?api-version=7.0`
+    const updatePipelineResponse: Response = await nodeFetch(
+      `${pipeline._links.self.href}&api-version=7.0`,
+      {
+        method: 'PUT',
+        headers: this.headers,
+        body: JSON.stringify(pipeline)
+      }
+    )
+    core.debug(
+      `updatePipelineResponse response: ${JSON.stringify(
+        updatePipelineResponse
+      )}`
+    )
+    core.debug(`updatePipelineResponse.ok = ${updatePipelineResponse.ok}`)
+    core.debug(
+      `updatePipelineResponse.status = ${updatePipelineResponse.status}`
+    )
+    core.debug(
+      `updatePipelineResponse.statusText = ${updatePipelineResponse.statusText}`
+    )
+    const responseObject = await updatePipelineResponse.json()
+    core.debug(
+      `updatePipelineResponse JSON response : ${JSON.stringify(responseObject)}`
+    )
+    if (updatePipelineResponse.ok) {
+      const updatePipelineSuccess = `Hello ${this.actor}, The pipeline ${pipeline.id}, ${pipeline.name} in your project ${this.adoInputs.Destination_Project} has been rewired\n`
+
+      core.debug(
+        `Success ${updatePipelineSuccess} ${updatePipelineResponse.status}: ${updatePipelineResponse.statusText}`
+      )
+      const params = {
+        owner: this.repository.owner.login,
+        repo: this.repository.name,
+        issue_number: this.issue.number
+      }
+      await this.octokitClient.rest.issues.createComment({
+        ...params,
+        body: updatePipelineSuccess
+      })
+    } else {
+      const updatePipelineError = `Hello ${this.actor}, I am having trouble updating pipeline ${pipeline.id}, ${pipeline.name} in your project ${this.adoInputs.Destination_Project}. Please refer to the error below:\n`
+
+      const error = `Error ${updatePipelineResponse.status}: ${updatePipelineResponse.statusText}`
+      core.error(error)
+      const params = {
+        owner: this.repository.owner.login,
+        repo: this.repository.name,
+        issue_number: this.issue.number
+      }
+      await this.octokitClient.rest.issues.createComment({
+        ...params,
+        body: updatePipelineError.concat(`\n${error}`)
+      })
     }
   }
 
@@ -228,9 +305,26 @@ ${pipelinesList.reduce((x: unknown, y: unknown) => {
 `
   }
 
-  private async getADOPipelinesList(): Promise<unknown[] | null> {
+  private async getADOPipelinesList(): Promise<
+    | {
+        id: string
+        name: string
+        url: string
+        _links: {self: {href: string}}
+        repository: {properties: {connectedServiceId: string}}
+      }[]
+    | null
+  > {
     const listPipelinesUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.Destination_Project}/_apis/build/definitions?api-version=7.0`
-    const pipelinesList = []
+    const pipelinesList:
+      | {
+          id: string
+          name: string
+          url: string
+          _links: {self: {href: string}}
+          repository: {properties: {connectedServiceId: string}}
+        }[]
+      | null = []
     const listPipelinesResponse: Response = await nodeFetch(listPipelinesUrl, {
       method: 'GET',
       headers: this.headers
@@ -246,7 +340,13 @@ ${pipelinesList.reduce((x: unknown, y: unknown) => {
 
     if (listPipelinesResponse.ok) {
       for (const build of responseObject.value) {
-        const pipeline = await this.getBuildDefinition(build._links.self.href)
+        const pipeline: {
+          id: string
+          name: string
+          url: string
+          _links: {self: {href: string}}
+          repository: {properties: {connectedServiceId: string}}
+        } | null = await this.getBuildDefinition(build._links.self.href)
         if (pipeline) {
           pipelinesList.push(pipeline)
         }
@@ -338,9 +438,14 @@ ${pipelinesList.reduce((x: unknown, y: unknown) => {
     }
   }
 
-  private async getBuildDefinition(
-    fetchUrl: string
-  ): Promise<{id: string} | null> {
+  private async getBuildDefinition(fetchUrl: string): Promise<{
+    id: string
+    name: string
+    url: string
+    _links: {self: {href: string}}
+    repository: {properties: {connectedServiceId: string}}
+  } | null> {
+    core.debug(`fetchUrl: ${fetchUrl}`)
     const buildDefinitionResponse: Response = await nodeFetch(fetchUrl, {
       method: 'GET',
       headers: this.headers
@@ -350,6 +455,8 @@ ${pipelinesList.reduce((x: unknown, y: unknown) => {
         buildDefinitionResponse
       )}`
     )
+    //const responseTxt = await buildDefinitionResponse.text()
+    //core.debug(`buildDefinitionResponse Text response : ${responseTxt}`)
     const responseObject = await buildDefinitionResponse.json()
     core.debug(
       `buildDefinitionResponse JSON response : ${JSON.stringify(
