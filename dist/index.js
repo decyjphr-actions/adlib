@@ -260,10 +260,11 @@ class IssueCommand {
                 };
                 const sharedServiceConnection = yield this.getSharedServiceConnection();
                 if (sharedServiceConnection) {
-                    core.debug(`Creating issue comment with GoodValidation message`);
-                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: goodValidation
-                            .replace('{{author}}', this.actor)
-                            .concat(`\n${JSON.stringify(sharedServiceConnection, null, 2)}`) }));
+                    const body = goodValidation
+                        .replace('{{author}}', this.actor)
+                        .concat(this.printSharedServiceConnection(sharedServiceConnection));
+                    core.debug(`Creating issue comment with GoodValidation message ${body}`);
+                    yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body }));
                 }
                 else {
                     core.debug(`Creating issue comment with BadValidation message`);
@@ -297,6 +298,13 @@ class IssueCommand {
                 throw new Error(message);
             }
         });
+    }
+    printSharedServiceConnection(sharedServiceConnection) {
+        return `
+| id | name | type |
+| -- | -- | -- |
+| ${sharedServiceConnection.id} | ${sharedServiceConnection.name} | ${sharedServiceConnection.type} |
+`;
     }
     getADOPipelinesList() {
         return __awaiter(this, void 0, void 0, function* () {

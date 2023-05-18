@@ -145,14 +145,19 @@ export class IssueCommand implements IIssue {
         repo: this.repository.name,
         issue_number: this.issue.number
       }
-      const sharedServiceConnection = await this.getSharedServiceConnection()
+      const sharedServiceConnection: {
+        id: string
+        name: string
+        type: string
+      } | null = await this.getSharedServiceConnection()
       if (sharedServiceConnection) {
-        core.debug(`Creating issue comment with GoodValidation message`)
+        const body = goodValidation
+          .replace('{{author}}', this.actor)
+          .concat(this.printSharedServiceConnection(sharedServiceConnection))
+        core.debug(`Creating issue comment with GoodValidation message ${body}`)
         await this.octokitClient.rest.issues.createComment({
           ...params,
-          body: goodValidation
-            .replace('{{author}}', this.actor)
-            .concat(`\n${JSON.stringify(sharedServiceConnection, null, 2)}`)
+          body
         })
       } else {
         core.debug(`Creating issue comment with BadValidation message`)
@@ -194,6 +199,18 @@ export class IssueCommand implements IIssue {
       core.error(message)
       throw new Error(message)
     }
+  }
+
+  private printSharedServiceConnection(sharedServiceConnection: {
+    id: string
+    name: string
+    type: string
+  }): string {
+    return `
+| id | name | type |
+| -- | -- | -- |
+| ${sharedServiceConnection.id} | ${sharedServiceConnection.name} | ${sharedServiceConnection.type} |
+`
   }
 
   private async getADOPipelinesList(): Promise<unknown> {
@@ -332,7 +349,11 @@ export class IssueCommand implements IIssue {
       return null
     }
   }
-  private async getSharedServiceConnection(): Promise<unknown> {
+  private async getSharedServiceConnection(): Promise<{
+    id: string
+    name: string
+    type: string
+  } | null> {
     const serviceConnectionByNameUrl = `https://dev.azure.com/${this.adoInputs.adoOrg}/${this.adoInputs.adoSharedProject}/_apis/serviceendpoint/endpoints?endpointNames=${this.adoInputs.adoSharedServiceConnection}&api-version=7.0`
 
     const serviceConnectionByNameResponse: Response = await nodeFetch(
