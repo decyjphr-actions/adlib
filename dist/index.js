@@ -158,6 +158,7 @@ If you have any questions, please reach out to @decyjphr.
 At any time, you can type the following commands in the issue comment to interact with me:
 \`ack\` - Acknowledge the request
 \`validate\` - Validate the request
+\`share\` - Share the Shared Service Connection
 \`rewire\` - Rewire the project
 \`approve\` - Approve the request
 
@@ -208,7 +209,24 @@ class IssueCommand {
     }
     share() {
         return __awaiter(this, void 0, void 0, function* () {
-            throw new Error('Method not implemented.');
+            const params = {
+                owner: this.repository.owner.login,
+                repo: this.repository.name,
+                issue_number: this.issue.number
+            };
+            const sharedServiceConnection = yield this.getSharedServiceConnection();
+            if (sharedServiceConnection) {
+                // Share this service connection to the user's project
+                yield this.shareServiceConnection(sharedServiceConnection);
+            }
+            else {
+                core.debug(`Creating issue comment with Share failed message`);
+                const error = `Service Connection ${this.adoInputs.adoSharedServiceConnection} not found in project ${this.adoInputs.adoSharedProject}}`;
+                core.error(error);
+                yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: badSharedServiceConnection
+                        .replace('{{author}}', this.actor)
+                        .concat(`\n${error}`) }));
+            }
         });
     }
     rewire() {
