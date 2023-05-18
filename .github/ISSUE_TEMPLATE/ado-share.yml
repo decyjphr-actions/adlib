@@ -24,13 +24,6 @@ body:
     description: "Enter the Project where the connection must be shared."
   validations:
     required: true
-- type: input
-  id: build-definition
-  attributes:
-    label: ">>Build_Definition<<"
-    description: "Enter the Build Definition Number of the ADO Pipeline that needs to be rewired to use the share connection"
-  validations:
-    required: true
     
 
       
