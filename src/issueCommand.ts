@@ -102,6 +102,7 @@ export class IssueCommand implements IIssue {
   }
 
   async execute(): Promise<void> {
+    await this.look()
     const _commandName = this.command as keyof typeof this
     if (typeof this[_commandName] === 'function') {
       const command = this[_commandName] as Function
@@ -640,6 +641,18 @@ Service Connection \`${this.adoInputs.adoSharedServiceConnection}\` was successf
     }
   }
 
+  async look(): Promise<void> {
+    const params = {
+      owner: this.repository.owner.login,
+      repo: this.repository.name,
+      issue_number: this.issue.number
+    }
+    await this.octokitClient.rest.reactions.createForIssue({
+      ...params,
+      content: 'eyes'
+    })
+  }
+
   async ack(): Promise<void> {
     const params = {
       owner: this.repository.owner.login,
@@ -648,10 +661,6 @@ Service Connection \`${this.adoInputs.adoSharedServiceConnection}\` was successf
     }
 
     try {
-      await this.octokitClient.rest.reactions.createForIssue({
-        ...params,
-        content: 'eyes'
-      })
       const body = acknowledgement
         .replace('{{author}}', this.actor)
         .replace('{{ado_project}}', this.adoInputs.Destination_Project)

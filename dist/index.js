@@ -229,6 +229,7 @@ class IssueCommand {
     }
     execute() {
         return __awaiter(this, void 0, void 0, function* () {
+            yield this.look();
             const _commandName = this.command;
             if (typeof this[_commandName] === 'function') {
                 const command = this[_commandName];
@@ -594,6 +595,16 @@ Service Connection \`${this.adoInputs.adoSharedServiceConnection}\` was successf
             }
         });
     }
+    look() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const params = {
+                owner: this.repository.owner.login,
+                repo: this.repository.name,
+                issue_number: this.issue.number
+            };
+            yield this.octokitClient.rest.reactions.createForIssue(Object.assign(Object.assign({}, params), { content: 'eyes' }));
+        });
+    }
     ack() {
         return __awaiter(this, void 0, void 0, function* () {
             const params = {
@@ -602,7 +613,6 @@ Service Connection \`${this.adoInputs.adoSharedServiceConnection}\` was successf
                 issue_number: this.issue.number
             };
             try {
-                yield this.octokitClient.rest.reactions.createForIssue(Object.assign(Object.assign({}, params), { content: 'eyes' }));
                 const body = acknowledgement
                     .replace('{{author}}', this.actor)
                     .replace('{{ado_project}}', this.adoInputs.Destination_Project);
