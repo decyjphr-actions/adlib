@@ -149,11 +149,9 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.IssueCommand = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const node_fetch_1 = __importDefault(__nccwpck_require__(467));
-const acknowledgement = `Hello @{{author}}, 
+const acknowledgement = `Hello @{{author}} :wave:, 
 I'm a bot that helps you rewire your ADO pipelines to GitHub link to use a shared GitHub App based service connection. 
-I've received your request to rewire your project \`{{ado_project}}\`. 
-
-If everything looks good, I'll update you with the next steps. 
+I've received your request to rewire Pipelines in your ADO Project \`{{ado_project}}\`.  
 
 If you have any questions, please reach out to @decyjphr. 
 
@@ -162,6 +160,8 @@ At any time, you can type the following commands in the issue comment to interac
 \`validate\` - Validate the request
 \`rewire\` - Rewire the project
 \`approve\` - Approve the request
+
+**Type \`validate\` to get started.**
 `;
 const goodValidation = `Hello @{{author}}, I will be using the following Service Connection to rewire your ADO pipelines:\n`;
 const badValidation = `Hello @{{author}}, I am having trouble with your request. Please see the error below:\n`;
