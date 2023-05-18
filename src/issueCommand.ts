@@ -488,7 +488,7 @@ ${pipelinesList.reduce((x: unknown, y: unknown) => {
     if (shareServiceConnectionResponse.ok) {
       core.debug(`Creating issue comment with Share success message`)
       const success = `Hello @${this.actor},
-Service Connection ${this.adoInputs.adoSharedServiceConnection} was successfully shared to the project ${this.adoInputs.Destination_Project}`
+Service Connection \`${this.adoInputs.adoSharedServiceConnection}\` was successfully shared to the project \`${this.adoInputs.Destination_Project}\` `
       core.debug(success)
       await this.octokitClient.rest.issues.createComment({
         ...params,
