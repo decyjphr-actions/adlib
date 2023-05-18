@@ -497,9 +497,9 @@ Service Connection ${this.adoInputs.adoSharedServiceConnection} was successfully
             else {
                 if (responseObject.typeKey === 'DuplicateServiceConnectionException') {
                     const error = `Hello @${this.actor}, 
-        :warning: ${responseObject.message}
+:shrug: ${responseObject.message}
         
-        But it's ok, we can continue :smile:`;
+**But it's ok, we can continue :smile:**`;
                     core.error(error);
                     yield this.octokitClient.rest.issues.createComment(Object.assign(Object.assign({}, params), { body: error }));
                     return responseObject;
