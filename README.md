@@ -104,7 +104,7 @@ In our approach, the Action must be part of a workflow that gets triggered when 
 
 There is a step in the workflow that parses the Issue body and converts it to the input JSON.
 
-There are two steps one to process the request when triggered by an `issues.labeled` event, and the other by the `issue_comment` event.
+There are further two steps: one to process the request when triggered by an `issues.labeled` event, and the other by the `issue_comment` event.
 For the `issues.labeled` event, the default `command` is `ack`; for the `issue_comment` event, the `command` is the issue comment body.
 
 
