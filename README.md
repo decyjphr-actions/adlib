@@ -4,7 +4,7 @@
 
 # Adlib
 
-Adlib is a TypeScript Action that processes user inputs as `Issues` to `Rewire` ADO pipelines in a project to use a pre-defined GitHub App-based  `ADO service connection`:rocket:
+Adlib is a TypeScript Action that processes user's requests as `Issues` to `Rewire` ADO pipelines in their project to use a pre-defined GitHub App-based  `ADO service connection`:rocket:
 
 ## How it works
 
