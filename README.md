@@ -40,7 +40,7 @@ In your repository you should have a `.github/workflows` folder with GitHub work
 
 `.github/workflows/test.yml`
 This file should look like the following:
-```json
+```yml
 name: Test Action
 
 on:
