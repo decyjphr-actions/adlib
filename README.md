@@ -22,7 +22,7 @@ The action takes the following inputs:
 - **ado_shared_service_connection:** This is the `service connection` name for the one to be shared
 - **github_token:** This is the `GITHUB_TOKEN` provided in the Actions workflow
 - **issue_body_json:** This is the issue body that has the input of the issue. For this Action, the issue body needs the following information:
-  ```json
+  ```
   {
     Destination_Project: <project where the user needs the pipelines to be rewired>
   }
