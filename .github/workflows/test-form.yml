@@ -24,12 +24,20 @@ jobs:
         uses: actions/github-script@v5
         env:
           payload: ${{ steps.parse.outputs.payload }}
+          ado_pat: ${{ secrets.ADO_PAT }}
+          ado_org: ${{ secrets.ADO_ORG }}
+          ado_shared_project: ${{ secrets.ADO_SHARED_PROJECT }}
+          ado_shared_service_connection: ${{ secrets.ADO_SHARED_SERVICE_CONNECTION }}
         with:
           script: |
             const {payload} = process.env
             console.log(JSON.stringify(payload,null,2))
             const input = JSON.parse(payload)
-            core.setOutput('issue_name', input.issue_name);
+            input.adoToken = process.env.ado_pat
+            input.adoOrg = process.env.ado_org
+            input.adoSharedProject = process.env.ado_shared_project
+            input.adoSharedServiceConnection = process.env.ado_shared_service_connection
+            core.setOutput('payload', input);
 
       - id: issue-labeled
         if: github.event_name == 'issues'
