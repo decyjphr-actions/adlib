@@ -36,7 +36,7 @@ The action takes the following inputs:
   
 ## How to use
 
-In your repository you should have a `.github/workflows` folder with GitHub workflow similar to below:
+In your repository you should have a `.github/workflows` folder with GitHub workflow similar to 
 
 `.github/workflows/test.yml`
 This file should look like the following:
