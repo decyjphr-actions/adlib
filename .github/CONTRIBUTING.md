@@ -86,7 +86,7 @@ See the [versioning documentation](https://github.com/actions/toolkit/blob/maste
 You can now validate the action by referencing `./` in a workflow in your repo (see [test.yml](workflows/test-form.yml))
 
 
-See the [actions tab](../actions) for runs of this action! :rocket:
+See the [actions tab](../../../actions) for runs of this action! :rocket:
 
 ## Usage:
 
