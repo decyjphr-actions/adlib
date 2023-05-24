@@ -21,6 +21,11 @@ jobs:
       - uses: actions/checkout@v3
       - uses: ./
         with:
-          ado_pat: ${{ secrets.ADO_PAT }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           issue_body_json: ${{ toJson(github.event.issue.body) }}
+          ado_pat: ${{ secrets.ADO_PAT }}
+          ado_org: ${{ secrets.ADO_ORG }}
+          ado_shared_project: ${{ secrets.ADO_SHARED_PROJECT }}
+          ado_shared_service_connection: ${{ secrets.ADO_SHARED_SERVICE_CONNECTION }}
+          command: 'ack'
+          
