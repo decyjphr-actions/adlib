@@ -106,6 +106,7 @@ beforeEach(() => {
 })
 
 test('main test', () => {
+  process.env['INPUT_COMMAND'] = 'ack'
   run()
 })
 /*
