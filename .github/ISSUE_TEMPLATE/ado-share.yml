@@ -22,7 +22,7 @@ body:
 - type: input
   id: destination-project
   attributes:
-    label: ">>Destination_Project<<"
+    label: ":Destination_Project:"
     description: "Enter the Project where the connection must be shared."
   validations:
     required: true
