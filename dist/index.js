@@ -153,8 +153,6 @@ const acknowledgement = `Hello @{{author}} :wave:,
 I'm a bot that helps you rewire your ADO pipelines to GitHub link to use a shared GitHub App based service connection. 
 I've received your request to rewire Pipelines in your ADO Project \`{{ado_project}}\`.  
 
-If you have any questions, please reach out to @decyjphr. 
-
 At any time, you can type the following commands in the issue comment to interact with me:
 \`ack\` - Acknowledge the request
 \`validate\` - Validate the request
@@ -486,7 +484,7 @@ ${pipelinesList.reduce((x, y) => {
             }
             const data = [
                 {
-                    name: `${this.adoInputs.adoOrg}-${this.adoInputs.Destination_Project}`,
+                    name: `${this.adoInputs.adoSharedServiceConnection}`,
                     projectReference: {
                         id: `${destinationProject === null || destinationProject === void 0 ? void 0 : destinationProject.id}`,
                         name: `${this.adoInputs.Destination_Project}`
