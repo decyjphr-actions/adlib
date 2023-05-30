@@ -210,18 +210,18 @@ class IssueCommand {
     constructor(_octokit, _actor, _command, _issue, _repository, _adoInputs) {
         this.headers = [
             ['Authorization', `Basic empty`],
-            ['Accept', 'application/json;api-version=7.1-preview.4'],
+            ['Accept', 'application/json;api-version=7.0'],
             ['Content-Type', 'application/json; charset=utf-8']
         ];
         this.issue = _issue;
         this.repository = _repository;
         this.adoInputs = _adoInputs;
-        this.adoInputs.adoToken = Buffer.from(`:${this.adoInputs.adoToken}`).toString('base64');
+        const adoToken = Buffer.from(`:${this.adoInputs.adoToken}`).toString('base64');
         this.command = _command;
         this.octokitClient = _octokit;
         this.actor = _actor;
         this.headers = [
-            ['Authorization', `Basic ${this.adoInputs.adoToken}`],
+            ['Authorization', `Basic ${adoToken}`],
             ['Content-Type', 'application/json; charset=utf-8']
         ];
     }

@@ -101,19 +101,8 @@ beforeEach(() => {
       '/octoshift-demo/40715695-80ae-4251-8a94-516e4ded0a2a/_apis/build/Definitions/5?revision=23&api-version=7.0'
     )
     .reply(200, '{}')
-  //nock.disableNetConnect()
 })
-/*
-test('Input Helper test', () => {
-  const inputs: IssueCommand | undefined = inputHelper.getInputs()
 
-  //expect(inputs).toBeDefined()
-  //expect(inputs).toBeInstanceOf(RewireInputs)
-  if (inputs instanceof IssueCommand) {
-    const rewireInputs: IssueCommand = inputs
-  }
-})
-*/
 test('Input Helper Ack test', async () => {
   process.env['INPUT_COMMAND'] = 'ack'
   const inputs: IIssue | undefined = inputHelper.getInputs()
@@ -126,7 +115,7 @@ test('Input Helper Ack test', async () => {
   }
 }, 80000)
 
-test('Input Helper Validate test', async () => {
+test('Input Helper Rewire test', async () => {
   process.env['INPUT_COMMAND'] = 'rewire'
   const inputs: IIssue | undefined = inputHelper.getInputs()
 
