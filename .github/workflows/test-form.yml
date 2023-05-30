@@ -21,7 +21,7 @@ jobs:
           label_marker_end: '<<' 
       - id: issueinput
         name: Parse Issue Input to get the type
-        uses: actions/github-script@v5
+        uses: actions/github-script@v6
         env:
           payload: ${{ steps.parse.outputs.payload }}
           ado_pat: ${{ secrets.ADO_PAT }}
